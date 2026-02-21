@@ -469,65 +469,166 @@ function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences
   }
 
   // ── STEP 1: GREEDY PASS ───────────────────────────────────────────────────
-  // Fill remaining open slots. Primary driver = distance from fairTarget.
-  planDates.forEach(date=>{
-    if(isDateLocked(date,lockedRanges)) return;
-    const slots  = getSlotsForDate(date,periods);
-    const prefs  = preferences[date]||{};
-    const t      = getDayType(date,customH);
-    const curWk  = getISOWeek(date);
-    const period = getPeriodForDate(date,periods);
-    const already= sched[date]||[];
-    if(already.length>=slots) return;
+  if(distributeMode==='equity'){
+    // EQUITY MODE: week-oriented assignment
+    // For each ISO week, pick the best doctor for that week (most days available,
+    // not over target, no negative prefs on those days, no consecutive weeks).
+    // That doctor gets ALL open slots in that week. Repeat per week.
+    // Multi-slot days (periods with >1 slot/day) assign additional doctors per day
+    // after the week-doctor is placed.
 
-    const eligible = periodDoctors[date]||allDoctors;
-    const remaining= eligible.filter(d=>!already.includes(d.id));
-    const chosen   = [];
-
-    for(let rankIdx=already.length; rankIdx<slots && remaining.length>0; rankIdx++){
-      const wrkKey = period?`${curWk}:${period.id}:${rankIdx}`:null;
-      const pool   = remaining.filter(d=>prefs[d.id]!=='negative');
-      if(pool.length===0) break;
-
-      const preferredForRank = wrkKey&&weekRankAssignment[wrkKey];
-      const scored = pool.map(doc=>{
-        let s=0;
-        // PRIMARY: distance below fair target — strongly penalise being over
-        const gap = fairTarget[doc.id]-(cnt[doc.id]||0);
-        s += gap * 25;
-        // Positive preference — but extra weight if constrained (low pos count)
-        if(prefs[doc.id]==='positive'){
-          const urgency = posCount[doc.id]<=fairTarget[doc.id] ? 30 : 8;
-          s += urgency;
-        }
-        if(distributeMode==='equity'){
-          if(lastWk[doc.id]&&weeksConsecutive(lastWk[doc.id],curWk)) s-=55;
-          s+=(weekAssigned[doc.id]?.[curWk]||0)*5;
-          if(preferredForRank&&doc.id===preferredForRank) s+=10;
-        } else {
-          s+=(Math.random()-0.5)*10; // spread in random mode
-        }
-        s+=Math.random()*0.4;
-        return {doc,s};
-      });
-      scored.sort((a,b)=>b.s-a.s);
-      const pick=scored[0].doc;
-      chosen.push(pick);
-      remaining.splice(remaining.findIndex(d=>d.id===pick.id),1);
-      if(wrkKey) weekRankAssignment[wrkKey]=pick.id;
-    }
-
-    const alreadyLen = already.length;
-    chosen.forEach(doc=>{
-      const t2=getDayType(date,customH), wk2=getISOWeek(date);
-      cnt[doc.id]++; lastWk[doc.id]=wk2;
-      weekAssigned[doc.id][wk2]=(weekAssigned[doc.id][wk2]||0)+1;
-      if(t2==='holiday') hdC[doc.id]++;
-      else if(t2==='weekend') weC[doc.id]++;
-      else wdC[doc.id]++;
+    // Collect all ISO weeks in plan range
+    const weekMap = {}; // isoWeek -> [dates]
+    planDates.forEach(date=>{
+      if(isDateLocked(date,lockedRanges)) return;
+      if(!getSlotsForDate(date,periods)) return;
+      const wk=getISOWeek(date);
+      if(!weekMap[wk]) weekMap[wk]=[];
+      weekMap[wk].push(date);
     });
-    sched[date]=[...already,...chosen.map(d=>d.id)];
-  });
+    const isoWeeks=Object.keys(weekMap).sort();
+
+    isoWeeks.forEach(wk=>{
+      const wkDates=weekMap[wk];
+      // For each rank slot (1st doctor, 2nd doctor per day, etc.)
+      const maxSlots=Math.max(...wkDates.map(d=>getSlotsForDate(d,periods)));
+
+      for(let rankIdx=0; rankIdx<maxSlots; rankIdx++){
+        // Dates in this week that still need filling at this rank
+        const openDates=wkDates.filter(date=>{
+          const cur=sched[date]||[];
+          return cur.length<=rankIdx && getSlotsForDate(date,periods)>rankIdx;
+        });
+        if(!openDates.length) continue;
+
+        // Eligible doctors: not already assigned on ALL open dates, not over target
+        const eligible = allDoctors.filter(doc=>{
+          if(cnt[doc.id]>=fairTarget[doc.id]) return false;
+          // Must be able to work at least one open date this week
+          return openDates.some(date=>{
+            const cur=sched[date]||[];
+            if(cur.includes(doc.id)) return false;
+            const pool2=periodDoctors[date]||allDoctors;
+            if(!pool2.find(d=>d.id===doc.id)) return false;
+            return (preferences[date]||{})[doc.id]!=='negative';
+          });
+        });
+        if(!eligible.length) continue;
+
+        // Score each candidate for this week
+        const scored=eligible.map(doc=>{
+          let s=0;
+          // How many days in this week can this doctor work (not negative)?
+          const availDays=openDates.filter(date=>{
+            const cur=sched[date]||[];
+            if(cur.includes(doc.id)) return false;
+            return (preferences[date]||{})[doc.id]!=='negative';
+          });
+          // Primary: prefer whoever fills the MOST days in this week
+          s += availDays.length * 30;
+          // Equity: prefer who is furthest below target
+          s += (fairTarget[doc.id]-(cnt[doc.id]||0)) * 20;
+          // Consecutive-week penalty
+          if(lastWk[doc.id]&&weeksConsecutive(lastWk[doc.id],wk)) s-=80;
+          // Positive preference bonus: count positive days in week
+          const posDays=availDays.filter(d=>isPositive(doc.id,d)).length;
+          const urgency=posCount[doc.id]<=fairTarget[doc.id]?30:8;
+          s+=posDays*urgency;
+          s+=Math.random()*0.5;
+          return {doc,s,availDays};
+        });
+        scored.sort((a,b)=>b.s-a.s);
+        const {doc:pick,availDays}=scored[0];
+
+        // Assign this doctor to all their available days in this week for this rank
+        availDays.forEach(date=>{
+          const cur=sched[date]||[];
+          if(cur.length>rankIdx) return; // already filled this rank
+          if(cur.includes(pick.id)) return;
+          assign(pick,date);
+        });
+      }
+    });
+
+    // Fill any remaining open slots (e.g. days where everyone was constrained)
+    planDates.forEach(date=>{
+      if(isDateLocked(date,lockedRanges)) return;
+      const slots=getSlotsForDate(date,periods);
+      const prefs=preferences[date]||{};
+      const curWk=getISOWeek(date);
+      const period=getPeriodForDate(date,periods);
+      const already=sched[date]||[];
+      if(already.length>=slots) return;
+
+      const eligible=(periodDoctors[date]||allDoctors).filter(d=>!already.includes(d.id));
+      for(let rankIdx=already.length; rankIdx<slots && eligible.length>0; rankIdx++){
+        const pool=eligible.filter(d=>prefs[d.id]!=='negative');
+        if(!pool.length) break;
+        const wrkKey=period?`${curWk}:${period.id}:${rankIdx}`:null;
+        const preferredForRank=wrkKey&&weekRankAssignment[wrkKey];
+        const sc=pool.map(doc=>{
+          let s=(fairTarget[doc.id]-(cnt[doc.id]||0))*20;
+          if(isPositive(doc.id,date)) s+=(posCount[doc.id]<=fairTarget[doc.id]?30:8);
+          if(lastWk[doc.id]&&weeksConsecutive(lastWk[doc.id],curWk)) s-=80;
+          if(preferredForRank&&doc.id===preferredForRank) s+=10;
+          s+=Math.random()*0.4;
+          return {doc,s};
+        });
+        sc.sort((a,b)=>b.s-a.s);
+        const pick=sc[0].doc;
+        assign(pick,date);
+        eligible.splice(eligible.findIndex(d=>d.id===pick.id),1);
+        if(wrkKey) weekRankAssignment[wrkKey]=pick.id;
+      }
+    });
+
+  } else {
+    // RANDOM MODE: day-by-day, fair + spread
+    planDates.forEach(date=>{
+      if(isDateLocked(date,lockedRanges)) return;
+      const slots  = getSlotsForDate(date,periods);
+      const prefs  = preferences[date]||{};
+      const curWk  = getISOWeek(date);
+      const period = getPeriodForDate(date,periods);
+      const already= sched[date]||[];
+      if(already.length>=slots) return;
+
+      const eligible = periodDoctors[date]||allDoctors;
+      const remaining= eligible.filter(d=>!already.includes(d.id));
+      const chosen   = [];
+
+      for(let rankIdx=already.length; rankIdx<slots && remaining.length>0; rankIdx++){
+        const wrkKey = period?`${curWk}:${period.id}:${rankIdx}`:null;
+        const pool   = remaining.filter(d=>prefs[d.id]!=='negative');
+        if(pool.length===0) break;
+
+        const scored = pool.map(doc=>{
+          let s=0;
+          s+=(fairTarget[doc.id]-(cnt[doc.id]||0))*20;
+          if(prefs[doc.id]==='positive'){
+            s+=(posCount[doc.id]<=fairTarget[doc.id]?30:8);
+          }
+          s+=(Math.random()-0.5)*10;
+          return {doc,s};
+        });
+        scored.sort((a,b)=>b.s-a.s);
+        const pick=scored[0].doc;
+        chosen.push(pick);
+        remaining.splice(remaining.findIndex(d=>d.id===pick.id),1);
+        if(wrkKey&&!weekRankAssignment[wrkKey]) weekRankAssignment[wrkKey]=pick.id;
+      }
+
+      chosen.forEach(doc=>{
+        const t2=getDayType(date,customH), wk2=getISOWeek(date);
+        cnt[doc.id]++; lastWk[doc.id]=wk2;
+        weekAssigned[doc.id][wk2]=(weekAssigned[doc.id][wk2]||0)+1;
+        if(t2==='holiday') hdC[doc.id]++;
+        else if(t2==='weekend') weC[doc.id]++;
+        else wdC[doc.id]++;
+      });
+      sched[date]=[...already,...chosen.map(d=>d.id)];
+    });
+  }
 
   // ── STEP 2: REBALANCING PASS ──────────────────────────────────────────────
   // Iteratively find best (swap or add) to bring everyone to their fairTarget.
