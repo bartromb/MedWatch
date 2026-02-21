@@ -436,32 +436,113 @@ function buildSuggestions(schedule,doctors,stats,date,newDocId,customH={}){
 // ─── PROBLEM DETECTION ───────────────────────────────────────────────────────
 function detectProblems(schedule, doctors, periods, lockedRanges, customH={}) {
   const problems = [];
+  if(!doctors.length) return problems;
   const stats = computeStats(schedule, doctors, customH);
-  const avg = doctors.reduce((a,d)=>a+(stats[d.id]?.total||0),0)/Math.max(1,doctors.length);
-  
-  // Equity problems
+  const totals = doctors.map(d=>stats[d.id]?.total||0);
+  const sum = totals.reduce((a,b)=>a+b,0);
+  const avg = sum / Math.max(1, doctors.length);
+
+  // Helper: find dates assigned to fromDoc that could be given to toDoc
+  function swapCandidates(fromDoc, toDoc, dayType) {
+    return Object.entries(schedule)
+      .filter(([date, ids]) => {
+        if(!ids.includes(fromDoc.id)) return false;
+        if(ids.includes(toDoc.id)) return false;
+        if(isDateLocked(date, lockedRanges)) return false;
+        if(dayType==='weekend' && !isWeekend(date)) return false;
+        if(dayType==='holiday' && !isHoliday(date, customH)) return false;
+        if(dayType==='weekday' && (isWeekend(date)||isHoliday(date,customH))) return false;
+        // 'any' matches all daytypes
+        return true;
+      })
+      .map(([date])=>date)
+      .sort();
+  }
+
+  // Equity problems with suggestions
   doctors.forEach(doc => {
-    const tot = stats[doc.id]?.total||0;
-    const diff = Math.abs(tot-avg);
-    if(diff>=3) problems.push({type:'danger', icon:'⚖', text:`${doc.name}: ${tot} wachten (gem. ${avg.toFixed(1)}) — verschil ${diff.toFixed(0)}`});
-    else if(diff>=1.5) problems.push({type:'warn', icon:'⚖', text:`${doc.name}: lichte afwijking (${tot} vs gem. ${avg.toFixed(1)})`});
+    const tot = stats[doc.id]?.total || 0;
+    const diff = tot - avg;
+    if(Math.abs(diff) < 1.5) return;
+
+    const severity = Math.abs(diff) >= 3 ? 'danger' : 'warn';
+
+    if(diff > 0) {
+      // This doc has TOO MANY — find underscheduled doc to swap with
+      const underDocs = doctors
+        .filter(d=>d.id!==doc.id && (stats[d.id]?.total||0) < avg - 0.5)
+        .sort((a,b)=>(stats[a.id]?.total||0)-(stats[b.id]?.total||0));
+      
+      let suggestion = null;
+      for(const target of underDocs) {
+        const cands = swapCandidates(doc, target, 'any')
+          .concat(swapCandidates(doc, target, 'weekday'))
+          .filter((v,i,a)=>a.indexOf(v)===i);
+        if(cands.length) {
+          suggestion = { action:'swap', from: doc.name, to: target.name, date: cands[0], count: cands.length };
+          break;
+        }
+      }
+      problems.push({
+        type: severity,
+        icon: '⚖',
+        text: `${doc.name} heeft te veel wachten: ${tot} (gem. ${avg.toFixed(1)}, verschil +${diff.toFixed(1)})`,
+        suggestion,
+      });
+    } else {
+      // This doc has TOO FEW — find overscheduled doc
+      const overDocs = doctors
+        .filter(d=>d.id!==doc.id && (stats[d.id]?.total||0) > avg + 0.5)
+        .sort((a,b)=>(stats[b.id]?.total||0)-(stats[a.id]?.total||0));
+      
+      let suggestion = null;
+      for(const source of overDocs) {
+        const cands = swapCandidates(source, doc, 'any')
+          .concat(swapCandidates(source, doc, 'weekday'))
+          .filter((v,i,a)=>a.indexOf(v)===i);
+        if(cands.length) {
+          suggestion = { action:'swap', from: source.name, to: doc.name, date: cands[0], count: cands.length };
+          break;
+        }
+      }
+      problems.push({
+        type: severity,
+        icon: '⚖',
+        text: `${doc.name} heeft te weinig wachten: ${tot} (gem. ${avg.toFixed(1)}, verschil ${diff.toFixed(1)})`,
+        suggestion,
+      });
+    }
   });
-  
+
   // Consecutive weeks
   doctors.forEach(doc => {
     const consec = maxConsecWeeks(schedule, doc.id);
-    if(consec>1) problems.push({type:'danger', icon:'📅', text:`${doc.name}: ${consec} opeenvolgende weken wacht`});
+    if(consec > 1) {
+      problems.push({
+        type: 'danger',
+        icon: '📅',
+        text: `${doc.name}: ${consec} opeenvolgende weken ingepland`,
+        suggestion: { action:'info', note: 'Verplaats één van de wachten naar een niet-opeenvolgende week.' },
+      });
+    }
   });
-  
-  // Open slots
+
+  // Open slots within periods
   const openDates = Object.entries(schedule)
-    .filter(([date,ids])=>{ const p=getPeriodForDate(date,periods); const needed=getSlotsForDate(date,periods); return ids.length<needed; })
-    .map(([d])=>d).filter(d=>{ const p=getPeriodForDate(d,periods); return p!==null; });
-  if(openDates.length>0) problems.push({type:'warn', icon:'🕳', text:`${openDates.length} datum(s) niet volledig ingevuld binnen periodes`});
-  
-  // Lock conflicts (modified dates in locked ranges)
-  // (detected via adminEdits)
-  
+    .filter(([date, ids]) => {
+      const needed = getSlotsForDate(date, periods);
+      return needed > 0 && ids.length < needed && getPeriodForDate(date, periods) !== null;
+    })
+    .map(([d]) => d).filter(d => !isDateLocked(d, lockedRanges));
+  if(openDates.length > 0) {
+    problems.push({
+      type: 'warn',
+      icon: '🕳',
+      text: `${openDates.length} datum${openDates.length!==1?'s':''} niet volledig ingevuld binnen periodes`,
+      suggestion: { action:'info', note: `Voer auto-inplannen opnieuw uit, of vul de data manueel aan: ${openDates.slice(0,3).map(d=>fmtDisplay(d)).join(', ')}${openDates.length>3?', ...':''}` },
+    });
+  }
+
   return problems;
 }
 
@@ -1169,7 +1250,7 @@ function App(){
   const [pdfEnd,setPdfEnd]=useState('');
 
   const isAdmin=currentUser?.role==='admin';
-  const doctors=useMemo(()=>users.filter(u=>u.active),[users]);
+  const doctors=useMemo(()=>users.filter(u=>u.active&&u.role!=='admin'),[users]);
   const days=useMemo(()=>getDaysInMonth(year,month),[year,month]);
   const currentDates=useMemo(()=>days.filter(d=>d.current).map(d=>d.date),[days]);
   const stats=useMemo(()=>computeStats(schedule,doctors,customHolidays),[schedule,doctors,customHolidays]);
@@ -1364,11 +1445,22 @@ function App(){
             {isAdmin&&problems.length>0&&(
               <div className="problems-panel">
                 <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
-                  <div style={{fontWeight:700,fontSize:14,color:'var(--danger)'}}>⚠ {problems.length} probleem{problems.length!==1?'en':''} gevonden</div>
+                  <div style={{fontWeight:700,fontSize:14,color:'var(--danger)'}}>⚠ {problems.length} {problems.length!==1?'problemen':'probleem'} gevonden</div>
                   <button className="btn btn-ghost btn-sm" onClick={()=>setShowProblems(v=>!v)}>{showProblems?'Inklappen':'Tonen'}</button>
                 </div>
                 {showProblems&&problems.map((p,i)=>(
-                  <div key={i} className={`problem-item p-${p.type}`}><span>{p.icon}</span><span>{p.text}</span></div>
+                  <div key={i} className={`problem-item p-${p.type}`} style={{flexDirection:'column',alignItems:'flex-start',gap:4}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}><span>{p.icon}</span><span>{p.text}</span></div>
+                    {p.suggestion&&p.suggestion.action==='swap'&&(
+                      <div style={{fontSize:11,opacity:0.85,paddingLeft:20}}>
+                        💡 Verschuif een wacht van <strong>{p.suggestion.from}</strong> naar <strong>{p.suggestion.to}</strong>{' '}
+                        (bv. {fmtDisplay(p.suggestion.date)}{p.suggestion.count>1?`, +${p.suggestion.count-1} andere mogelijkheid${p.suggestion.count!==2?'heden':''}`:''})
+                      </div>
+                    )}
+                    {p.suggestion&&p.suggestion.action==='info'&&(
+                      <div style={{fontSize:11,opacity:0.85,paddingLeft:20}}>💡 {p.suggestion.note}</div>
+                    )}
+                  </div>
                 ))}
               </div>
             )}
@@ -1530,8 +1622,21 @@ function App(){
             </div>
             {problems.length>0&&(
               <div className="problems-panel" style={{marginBottom:16}}>
-                <div style={{fontWeight:700,fontSize:14,color:'var(--danger)',marginBottom:8}}>⚠ Problemen ({problems.length})</div>
-                {problems.map((p,i)=><div key={i} className={`problem-item p-${p.type}`}><span>{p.icon}</span><span>{p.text}</span></div>)}
+                <div style={{fontWeight:700,fontSize:14,color:'var(--danger)',marginBottom:8}}>⚠ {problems.length} {problems.length!==1?'problemen':'probleem'}</div>
+                {problems.map((p,i)=>(
+                  <div key={i} className={`problem-item p-${p.type}`} style={{flexDirection:'column',alignItems:'flex-start',gap:4}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}><span>{p.icon}</span><span>{p.text}</span></div>
+                    {p.suggestion&&p.suggestion.action==='swap'&&(
+                      <div style={{fontSize:11,opacity:0.85,paddingLeft:20}}>
+                        💡 Verschuif een wacht van <strong>{p.suggestion.from}</strong> naar <strong>{p.suggestion.to}</strong>{' '}
+                        (bv. {fmtDisplay(p.suggestion.date)}{p.suggestion.count>1?`, +${p.suggestion.count-1} andere mogelijkheid${p.suggestion.count!==2?'heden':''}`:''})
+                      </div>
+                    )}
+                    {p.suggestion&&p.suggestion.action==='info'&&(
+                      <div style={{fontSize:11,opacity:0.85,paddingLeft:20}}>💡 {p.suggestion.note}</div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
             {equityScore>=80&&scheduledDays>0&&!Object.keys(consecMap).length&&problems.length===0&&<div className="alert alert-success" style={{marginBottom:12}}>✓ <div>Uitstekend uitgebalanceerd!</div></div>}
