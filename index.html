@@ -497,6 +497,64 @@ function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences
       else                   wdC[doc.id]++;
     });
   });
+
+  // ── POST-PROCESSING: rebalance to improve equity ──────────────────────────
+  // Repeatedly find the most over-scheduled and most under-scheduled doctor,
+  // then try to swap one of the over-scheduled doctor's dates to the under-
+  // scheduled one — provided:
+  //   • the date is not locked
+  //   • the under-scheduled doctor has no negative preference on that date
+  //   • the under-scheduled doctor is eligible for that date's period
+  //   • the slot is not already taken by the under-scheduled doctor
+  // We run up to 200 swap attempts or until the max gap ≤ 1.
+
+  const MAX_PASSES = 200;
+  for(let pass=0; pass<MAX_PASSES; pass++){
+    // Recompute totals from sched (excluding carry-over so we only balance new assignments)
+    const totals = {};
+    allDoctors.forEach(d=>{ totals[d.id] = 0; });
+    Object.entries(sched).forEach(([date,ids])=>{
+      // Only count dates in our planning range
+      if(date < startDate || date > endDate) return;
+      ids.forEach(id=>{ if(totals[id]!==undefined) totals[id]++; });
+    });
+
+    const sorted = [...allDoctors].sort((a,b)=>totals[a.id]-totals[b.id]);
+    const under  = sorted[0];
+    const over   = sorted[sorted.length-1];
+    if(totals[over.id] - totals[under.id] <= 1) break; // good enough
+
+    // Find a date where 'over' is assigned that 'under' can take
+    const swappable = Object.entries(sched)
+      .filter(([date, ids])=>{
+        if(date < startDate || date > endDate) return false;
+        if(!ids.includes(over.id)) return false;
+        if(ids.includes(under.id)) return false;               // under already on this date
+        if(isDateLocked(date, lockedRanges)) return false;
+        if((preferences[date]||{})[under.id]==='negative') return false; // hard block
+        // Check under is eligible for this date's period
+        const p = getPeriodForDate(date, periods);
+        if(p?.eligibleDocs && !p.eligibleDocs.includes(under.id)) return false;
+        return true;
+      })
+      .map(([date])=>date);
+
+    if(!swappable.length) break; // no valid swap possible
+
+    // Pick the swap date where the difference in day-type counts is largest
+    // (prioritise giving under-scheduled person weekend/holiday swaps when they need them)
+    swappable.sort((a,b)=>{
+      const ta=getDayType(a,customH), tb=getDayType(b,customH);
+      const wa=ta==='holiday'?3:ta==='weekend'?2:1;
+      const wb=tb==='holiday'?3:tb==='weekend'?2:1;
+      return wb-wa;
+    });
+    const swapDate = swappable[0];
+
+    // Execute swap: replace over with under on that date
+    sched[swapDate] = sched[swapDate].map(id=>id===over.id ? under.id : id);
+  }
+
   return sched;
 }
 
