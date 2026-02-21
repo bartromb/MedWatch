@@ -78,6 +78,8 @@ h1,h2,h3{font-family:'DM Serif Display',serif;}
 .cal-cell.has-consec{border-color:rgba(239,68,68,0.4)!important;}
 .cal-cell.admin-modified{background:rgba(139,92,246,0.12)!important;border-color:rgba(139,92,246,0.5)!important;}
 .cal-cell.locked{opacity:0.75;}
+.cal-cell.needs-manual{border-color:rgba(239,68,68,0.7)!important;background:rgba(239,68,68,0.07)!important;}
+.needs-manual-tag{font-size:9px;font-weight:700;color:var(--danger);background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);border-radius:4px;padding:2px 5px;margin-top:3px;display:inline-block;letter-spacing:0.3px;}
 .cal-cell.locked .add-shift{display:none!important;}
 .lock-badge{position:absolute;top:3px;right:3px;font-size:10px;z-index:2;}
 .cal-date{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:2px;}
@@ -406,20 +408,27 @@ function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences
     for(let rankIdx=existing.length; rankIdx<slots && remaining.length>0; rankIdx++){
       const wrkKey = period ? `${curWk}:${period.id}:${rankIdx}` : null;
 
+      // Hard-exclude negative preferences for this slot.
+      // If everyone has a negative preference, skip this slot entirely —
+      // the day is left open and must be filled manually.
+      const pool = remaining.filter(d=>prefs[d.id]!=='negative');
+      if(pool.length === 0) break; // leave remaining slots open
+      const candidates = pool;
+
       if(distributeMode==='equity'){
         // ── EQUITY: bundle per week, fair totals, respect preferences ──
         const preferredForRank = wrkKey && weekRankAssignment[wrkKey];
-        const scored = remaining.map(doc=>{
+        const scored = candidates.map(doc=>{
           let s = 0;
 
           // 1. Day-type equity (prefer those with fewest of this type)
-          if(t==='holiday')     s -= hdC[doc.id]*3;
+          if(t==='holiday')      s -= hdC[doc.id]*3;
           else if(t==='weekend') s -= weC[doc.id]*2;
           else                   s -= wdC[doc.id];
 
-          // 2. Preferences
+          // 2. Positive preference bonus
           if(prefs[doc.id]==='positive') s += 5;
-          if(prefs[doc.id]==='negative') s -= 10;
+          // (negative already excluded from candidates above)
 
           // 3. Consecutive-week penalty (avoid back-to-back weeks)
           if(lastWk[doc.id] && weeksConsecutive(lastWk[doc.id], curWk)) s -= 100;
@@ -427,7 +436,7 @@ function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences
           // 4. Per-week bundling bonus: strongly prefer someone already
           //    assigned earlier THIS week (same person keeps the week)
           const alreadyThisWeek = weekAssigned[doc.id]?.[curWk]||0;
-          s += alreadyThisWeek * 40; // +40 per day already in this week
+          s += alreadyThisWeek * 40;
 
           // 5. Rank consistency bonus (same rank within week:period)
           if(preferredForRank && doc.id===preferredForRank) s += 50;
@@ -445,30 +454,27 @@ function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences
       } else {
         // ── RANDOM: spread across individual days, fair totals, preferences ──
         // No week-bundling, no consecutive-week penalty.
-        // Still uses equity + preference scoring so distribution stays fair,
-        // but adds heavy noise so the result feels random and days are spread.
-        const scored = remaining.map(doc=>{
+        // Negative preferences hard-excluded (via candidates pool above).
+        const totalList = allDoctors.map(d=>cnt[d.id]||0);
+        const avg = totalList.reduce((a,b)=>a+b,0)/Math.max(1,allDoctors.length);
+
+        const scored = candidates.map(doc=>{
           let s = 0;
 
-          // 1. Day-type equity (same weights as equity mode)
-          if(t==='holiday')     s -= hdC[doc.id]*3;
+          // 1. Day-type equity
+          if(t==='holiday')      s -= hdC[doc.id]*3;
           else if(t==='weekend') s -= weC[doc.id]*2;
           else                   s -= wdC[doc.id];
 
-          // 2. Preferences (still respected)
+          // 2. Positive preference bonus
           if(prefs[doc.id]==='positive') s += 5;
-          if(prefs[doc.id]==='negative') s -= 10;
+          // (negative already excluded from candidates above)
 
-          // 3. Bonus for people with very few assignments (prevents starvation)
-          //    Especially important when someone can only do 1-2 days in a period
+          // 3. Catch-up bonus for under-assigned staff
           const totalAssigned = cnt[doc.id]||0;
-          const allTotals = allDoctors.map(d=>cnt[d.id]||0);
-          const avg = allTotals.reduce((a,b)=>a+b,0)/Math.max(1,allDoctors.length);
-          if(totalAssigned < avg - 1) s += (avg - totalAssigned) * 3; // catch-up bonus
+          if(totalAssigned < avg - 1) s += (avg - totalAssigned) * 3;
 
-          // 4. Large random noise: dominates over small equity differences,
-          //    producing a visually spread/random result while still keeping
-          //    the distribution roughly fair thanks to the equity base score
+          // 4. Large random noise → spread/random feel while staying roughly fair
           s += (Math.random()-0.5)*8;
 
           return {doc, s};
@@ -495,11 +501,13 @@ function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences
 }
 
 // ─── EQUITY SUGGESTIONS ───────────────────────────────────────────────────────
-function buildSuggestions(schedule,doctors,stats,date,newDocId,customH={}){
+function buildSuggestions(schedule,doctors,stats,date,newDocId,customH={},preferences={}){
   if(!newDocId||!Object.keys(schedule).length) return [];
   const dayType=getDayType(date,customH); const myCount=stats[newDocId]?.[dayType]||0;
   const suggestions=[];
   doctors.filter(d=>d.id!==newDocId).forEach(candidate=>{
+    // Never suggest someone with a negative preference on the swap-target date
+    if((preferences[date]||{})[candidate.id]==='negative') return;
     const theirCount=stats[candidate.id]?.[dayType]||0; const diff=myCount-theirCount;
     if(diff<1) return;
     const cDates=Object.entries(schedule).filter(([d,ids])=>ids.includes(newDocId)&&getDayType(d,customH)===dayType&&d!==date).map(([d])=>d).sort();
@@ -513,7 +521,7 @@ function buildSuggestions(schedule,doctors,stats,date,newDocId,customH={}){
 }
 
 // ─── PROBLEM DETECTION ───────────────────────────────────────────────────────
-function detectProblems(schedule, doctors, periods, lockedRanges, customH={}) {
+function detectProblems(schedule, doctors, periods, lockedRanges, customH={}, preferences={}) {
   const problems = [];
   if(!doctors.length) return problems;
   const stats = computeStats(schedule, doctors, customH);
@@ -521,17 +529,18 @@ function detectProblems(schedule, doctors, periods, lockedRanges, customH={}) {
   const sum = totals.reduce((a,b)=>a+b,0);
   const avg = sum / Math.max(1, doctors.length);
 
-  // Helper: find dates assigned to fromDoc that could be given to toDoc
+  // Helper: find dates where fromDoc is assigned and toDoc could take over
+  // Excludes locked dates and dates where toDoc has a negative preference
   function swapCandidates(fromDoc, toDoc, dayType) {
     return Object.entries(schedule)
       .filter(([date, ids]) => {
         if(!ids.includes(fromDoc.id)) return false;
         if(ids.includes(toDoc.id)) return false;
         if(isDateLocked(date, lockedRanges)) return false;
+        if((preferences[date]||{})[toDoc.id]==='negative') return false; // hard exclude
         if(dayType==='weekend' && !isWeekend(date)) return false;
         if(dayType==='holiday' && !isHoliday(date, customH)) return false;
         if(dayType==='weekday' && (isWeekend(date)||isHoliday(date,customH))) return false;
-        // 'any' matches all daytypes
         return true;
       })
       .map(([date])=>date)
@@ -614,12 +623,32 @@ function detectProblems(schedule, doctors, periods, lockedRanges, customH={}) {
     })
     .map(([d]) => d).filter(d => !isDateLocked(d, lockedRanges));
   if(openDates.length > 0) {
-    problems.push({
-      type: 'warn',
-      icon: '🕳',
-      text: `${openDates.length} datum${openDates.length!==1?'s':''} niet volledig ingevuld binnen periodes`,
-      suggestion: { action:'info', note: `Voer auto-inplannen opnieuw uit, of vul de data manueel aan: ${openDates.slice(0,3).map(d=>fmtDisplay(d)).join(', ')}${openDates.length>3?', ...':''}` },
+    // Check which are open because everyone had a negative preference
+    const allNegDates = openDates.filter(date => {
+      const period = getPeriodForDate(date, periods);
+      const eligible = doctors.filter(d => period?.eligibleDocs ? period.eligibleDocs.includes(d.id) : true);
+      const assigned = schedule[date]||[];
+      const notYet = eligible.filter(d => !assigned.includes(d.id));
+      return notYet.length > 0 && notYet.every(d => (preferences[date]||{})[d.id]==='negative');
     });
+    const otherOpen = openDates.filter(d => !allNegDates.includes(d));
+
+    if(allNegDates.length > 0) {
+      problems.push({
+        type: 'danger',
+        icon: '🚫',
+        text: `${allNegDates.length} datum${allNegDates.length!==1?'s':''} open: iedereen heeft negatieve voorkeur — ${allNegDates.slice(0,3).map(d=>fmtDisplay(d)).join(', ')}${allNegDates.length>3?', ...':''}`,
+        suggestion: { action:'info', note: `${allNegDates.length!==1?'Deze datums zijn':'Deze datum is'} rood gemarkeerd op de kalender en moeten manueel ingevuld worden.` },
+      });
+    }
+    if(otherOpen.length > 0) {
+      problems.push({
+        type: 'warn',
+        icon: '🕳',
+        text: `${otherOpen.length} datum${otherOpen.length!==1?'s':''} niet volledig ingevuld binnen periodes`,
+        suggestion: { action:'info', note: `Voer auto-inplannen opnieuw uit, of vul de data manueel aan: ${otherOpen.slice(0,3).map(d=>fmtDisplay(d)).join(', ')}${otherOpen.length>3?', ...':''}` },
+      });
+    }
   }
 
   return problems;
@@ -1390,7 +1419,7 @@ function App(){
   const scheduledDays=useMemo(()=>Object.values(schedule).filter(v=>v.length>0).length,[schedule]);
   const openThisMonth=useMemo(()=>currentDates.filter(d=>!schedule[d]||!schedule[d].length).length,[currentDates,schedule]);
   const eqColor=equityScore>80?'var(--positive)':equityScore>60?'var(--warn)':'var(--danger)';
-  const problems=useMemo(()=>detectProblems(schedule,doctors,periods,lockedRanges,customHolidays),[schedule,doctors,periods,lockedRanges,customHolidays]);
+  const problems=useMemo(()=>detectProblems(schedule,doctors,periods,lockedRanges,customHolidays,preferences),[schedule,doctors,periods,lockedRanges,customHolidays,preferences]);
   const adminEditCount=useMemo(()=>Object.keys(adminEdits).length,[adminEdits]);
   
   // Build rank map for display
@@ -1423,7 +1452,7 @@ function App(){
     setAdminEdits(ae=>({...ae,[date]:true}));
     if(!isOn&&scheduledDays>0){
       const ns=computeStats(newSched,doctors,customHolidays);
-      const items=buildSuggestions(newSched,doctors,ns,date,docId,customHolidays);
+      const items=buildSuggestions(newSched,doctors,ns,date,docId,customHolidays,preferences);
       if(items.length) setSuggestions({date,newDocId:docId,items}); else setSuggestions(null);
     } else setSuggestions(null);
   }
@@ -1443,7 +1472,23 @@ function App(){
   
   function cellEquityIssue(date){ const a=schedule[date]||[];if(!a.length) return false;const dt=getDayType(date,customHolidays);
     return a.some(id=>{const mc=stats[id]?.[dt]||0;return doctors.some(o=>o.id!==id&&(mc-(stats[o.id]?.[dt]||0))>=3);}); }
-  
+
+  // A day is "needs manual" if it's inside a period, not locked, not fully filled,
+  // and every remaining eligible doctor has a negative preference on that date.
+  function cellNeedsManual(date){
+    if(isDateLocked(date,lockedRanges)) return false;
+    const required=getSlotsForDate(date,periods);
+    if(!required) return false;
+    const assigned=schedule[date]||[];
+    if(assigned.length>=required) return false;
+    const period=getPeriodForDate(date,periods);
+    if(!period) return false;
+    const eligible=doctors.filter(d=>period.eligibleDocs?period.eligibleDocs.includes(d.id):true);
+    const notYet=eligible.filter(d=>!assigned.includes(d.id));
+    if(!notYet.length) return false;
+    return notYet.every(d=>(preferences[date]||{})[d.id]==='negative');
+  }
+
   function cellClass(date,current){
     const cls=['cal-cell'];
     if(!current) cls.push('other-month');
@@ -1453,6 +1498,7 @@ function App(){
       if(date===fmt(today)) cls.push('today');
       if(isDateLocked(date,lockedRanges)) cls.push('locked');
       if(adminEdits[date]) cls.push('admin-modified');
+      else if(cellNeedsManual(date)) cls.push('needs-manual');
       else if(cellEquityIssue(date)) cls.push('has-equity');
       else if((schedule[date]||[]).some(id=>consecMap[id])) cls.push('has-consec');
     }
@@ -1614,6 +1660,7 @@ function App(){
                 <div className="legend-item"><div className="legend-box" style={{background:'var(--holiday)',border:'1px solid rgba(239,68,68,0.3)'}}></div>Feestdag</div>
                 {isAdmin&&<div className="legend-item"><div className="legend-box" style={{background:'rgba(139,92,246,0.18)',border:'1px solid rgba(139,92,246,0.5)'}}></div>Manueel</div>}
                 <div className="legend-item"><div className="legend-box" style={{background:'rgba(48,54,61,0.7)',border:'1px solid var(--border)'}}></div>Vergrendeld</div>
+                {isAdmin&&<div className="legend-item"><div className="legend-box" style={{background:'rgba(239,68,68,0.07)',border:'1px solid rgba(239,68,68,0.7)'}}></div>⚠ Manueel invullen</div>}
                 {periods.map(p=><div key={p.id} className="legend-item"><div className="legend-box" style={{background:p.color+'44',border:`1px solid ${p.color}`}}></div>{p.name}</div>)}
               </div>
             </div>
@@ -1657,6 +1704,7 @@ function App(){
                     })}
                     {current&&isAdmin&&!locked&&<div className="add-shift" onClick={()=>setModal({type:'addShift',date})}>+ {singular}</div>}
                     {current&&locked&&<div style={{fontSize:9,color:'var(--muted)',marginTop:3,opacity:0.6}}>Vergrendeld</div>}
+                    {current&&cellNeedsManual(date)&&<div className="needs-manual-tag">⚠ manueel invullen</div>}
                   </div>
                 );
               })}
