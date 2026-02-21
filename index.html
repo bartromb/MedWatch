@@ -16,6 +16,12 @@
   --weekend:rgba(245,158,11,0.13);--holiday:rgba(239,68,68,0.13);
   --admin-edit:rgba(139,92,246,0.18);--locked:rgba(48,54,61,0.7);
 }
+body.light-mode{
+  --bg:#f0f4f8;--surface:#ffffff;--surface2:#e8edf2;--border:#d1d9e0;
+  --text:#1a202c;--muted:#5a6a7e;
+  --weekend:rgba(245,158,11,0.10);--holiday:rgba(239,68,68,0.10);
+  --admin-edit:rgba(139,92,246,0.10);--locked:rgba(180,190,200,0.5);
+}
 *{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;}
 h1,h2,h3{font-family:'DM Serif Display',serif;}
@@ -190,6 +196,25 @@ h1,h2,h3{font-family:'DM Serif Display',serif;}
 
 /* ── RANK DOTS ── */
 .rank-pill{font-size:9px;font-weight:900;padding:1px 4px;border-radius:3px;margin-right:3px;background:rgba(0,0,0,0.3);}
+
+/* ── MOBILE LAYOUT ── */
+@media (max-width:768px){
+  .sidebar{width:100%;height:auto;position:relative;flex-direction:row;flex-wrap:wrap;}
+  .sidebar-logo{padding:12px 16px;}
+  .nav{display:flex;flex-direction:row;flex-wrap:wrap;padding:4px 8px;}
+  .nav-item{padding:6px 10px;font-size:11px;border-left:none;border-bottom:2px solid transparent;}
+  .nav-item.active{border-bottom-color:var(--accent);border-left-color:transparent;}
+  .nav-section{display:none;}
+  .sidebar-user{padding:8px 16px;border-top:1px solid var(--border);width:100%;}
+  .main{margin-left:0;padding:16px;}
+  .calendar-grid{grid-template-columns:repeat(7,1fr);}
+  .cal-cell{min-height:60px;padding:3px;}
+  .doctor-tag{font-size:9px;padding:2px 4px;}
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .modal-box{width:95vw;max-height:90vh;overflow-y:auto;}
+  .dist-table{font-size:11px;}
+  .dist-table th,.dist-table td{padding:6px 6px;}
+}
 
 /* PDF print styles */
 @media print{
@@ -631,9 +656,10 @@ function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences
   }
 
   // ── STEP 2: REBALANCING PASS ──────────────────────────────────────────────
-  // Iteratively find best (swap or add) to bring everyone to their fairTarget.
-  // Hard rule: never put someone on a date they have negative preference.
-  // Prefer positive-preference dates for the under-scheduled doctor.
+  // Goal: bring everyone to fairTarget ±0 (or ±1 if capacity-limited).
+  // Strategy:
+  //   Round A — direct swaps and open-slot fills (fast convergence)
+  //   Round B — chain swaps: over→neutral→under when no direct path exists
 
   function getCounts(){
     const c={};
@@ -647,9 +673,7 @@ function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences
   function canSwap(date,overId,underId){
     const ids=sched[date]||[];
     if(!ids.includes(overId)||ids.includes(underId)) return false;
-    if(!isEligible(underId,date)) return false;
-    // also check underId not negative (isEligible already checks this)
-    return true;
+    return isEligible(underId,date);
   }
 
   function canAdd(date,underId){
@@ -659,52 +683,90 @@ function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences
     return ids.length < getSlotsForDate(date,periods);
   }
 
-  const MAX_SWAPS=3000;
-  for(let pass=0; pass<MAX_SWAPS; pass++){
-    const counts   = getCounts();
-    const overDocs = allDoctors.filter(d=>counts[d.id]>fairTarget[d.id])
-                               .sort((a,b)=>counts[b.id]-counts[a.id]);
-    const underDocs= allDoctors.filter(d=>counts[d.id]<fairTarget[d.id])
-                               .sort((a,b)=>counts[a.id]-counts[b.id]);
-    if(!overDocs.length||!underDocs.length) break;
+  // Execute one round of direct swaps/adds. Returns number of swaps done.
+  function rebalanceRound(){
+    let done=0;
+    const MAX=3000;
+    for(let pass=0;pass<MAX;pass++){
+      const counts   = getCounts();
+      const overDocs = allDoctors.filter(d=>counts[d.id]>fairTarget[d.id]).sort((a,b)=>counts[b.id]-counts[a.id]);
+      const underDocs= allDoctors.filter(d=>counts[d.id]<fairTarget[d.id]).sort((a,b)=>counts[a.id]-counts[b.id]);
+      if(!overDocs.length||!underDocs.length) break;
 
-    let best=null;
-
-    for(const under of underDocs){
-      const shortfall=fairTarget[under.id]-counts[under.id];
-      // Sort dates: positive-preference days for 'under' first
-      const sortedDates=[...planDates].sort((a,b)=>{
-        const pa=isPositive(under.id,a)?1:0, pb=isPositive(under.id,b)?1:0;
-        return pb-pa;
-      });
-      for(const date of sortedDates){
-        // Option A: fill open slot
-        if(canAdd(date,under.id)){
-          const score=shortfall*10+(isPositive(under.id,date)?25:0)+2;
-          if(!best||score>best.score)
-            best={action:'add',date,under,over:null,score};
-        }
-        // Option B: swap over→under
-        for(const over of overDocs){
-          if(canSwap(date,over.id,under.id)){
-            const excess=counts[over.id]-fairTarget[over.id];
-            const score=shortfall*10+excess*10
-              +(isPositive(under.id,date)?25:0)
-              -(isPositive(over.id,date)?5:0);
-            if(!best||score>best.score)
-              best={action:'swap',date,under,over,score};
+      let best=null;
+      for(const under of underDocs){
+        const shortfall=fairTarget[under.id]-counts[under.id];
+        for(const date of planDates){
+          if(canAdd(date,under.id)){
+            const sc=shortfall*10+(isPositive(under.id,date)?25:0)+2;
+            if(!best||sc>best.score) best={action:'add',date,under,over:null,score:sc};
+          }
+          for(const over of overDocs){
+            if(canSwap(date,over.id,under.id)){
+              const excess=counts[over.id]-fairTarget[over.id];
+              const sc=shortfall*10+excess*10+(isPositive(under.id,date)?25:0)-(isPositive(over.id,date)?5:0);
+              if(!best||sc>best.score) best={action:'swap',date,under,over,score:sc};
+            }
           }
         }
       }
+      if(!best) break;
+      if(best.action==='add'){
+        sched[best.date]=[...(sched[best.date]||[]),best.under.id];
+      } else {
+        sched[best.date]=(sched[best.date]||[]).map(id=>id===best.over.id?best.under.id:id);
+      }
+      done++;
     }
+    return done;
+  }
 
-    if(!best) break;
+  // Chain-swap: over→neutral→under
+  // Find a "bridge" date for neutral doctor: take over's shift, give their own shift to under.
+  function chainSwapRound(){
+    let done=0;
+    const counts=getCounts();
+    const overDocs =allDoctors.filter(d=>counts[d.id]>fairTarget[d.id]).sort((a,b)=>counts[b.id]-counts[a.id]);
+    const underDocs=allDoctors.filter(d=>counts[d.id]<fairTarget[d.id]).sort((a,b)=>counts[a.id]-counts[b.id]);
+    if(!overDocs.length||!underDocs.length) return 0;
 
-    if(best.action==='add'){
-      sched[best.date]=[...(sched[best.date]||[]),best.under.id];
-    } else {
-      sched[best.date]=(sched[best.date]||[]).map(id=>id===best.over.id?best.under.id:id);
+    // Neutral doctors: at or just at target, can give a shift to under if they receive one from over
+    const neutralDocs=allDoctors.filter(d=>Math.abs(counts[d.id]-fairTarget[d.id])<=1);
+
+    for(const under of underDocs){
+      for(const neutral of neutralDocs){
+        if(neutral.id===under.id) continue;
+        // Find a date under can take from neutral
+        const underCanTake=planDates.find(d=>canSwap(d,neutral.id,under.id));
+        if(!underCanTake) continue;
+        // Find a date neutral can take from some over (to compensate)
+        for(const over of overDocs){
+          if(over.id===neutral.id||over.id===under.id) continue;
+          const neutralCanTake=planDates.find(d=>d!==underCanTake&&canSwap(d,over.id,neutral.id));
+          if(!neutralCanTake) continue;
+          // Execute both swaps
+          sched[neutralCanTake]=(sched[neutralCanTake]||[]).map(id=>id===over.id?neutral.id:id);
+          sched[underCanTake]  =(sched[underCanTake]  ||[]).map(id=>id===neutral.id?under.id:id);
+          done+=2;
+          break;
+        }
+        if(done) break;
+      }
+      if(done) break;
     }
+    return done;
+  }
+
+  // Run direct rounds first, then chain rounds if still unbalanced
+  rebalanceRound();
+  for(let chainPass=0;chainPass<50;chainPass++){
+    const counts=getCounts();
+    const maxOver=Math.max(0,...allDoctors.map(d=>counts[d.id]-fairTarget[d.id]));
+    const maxUnder=Math.max(0,...allDoctors.map(d=>fairTarget[d.id]-counts[d.id]));
+    if(maxOver<=1&&maxUnder<=1) break;
+    const c=chainSwapRound();
+    rebalanceRound();
+    if(!c) break;
   }
 
   return sched;
@@ -1602,6 +1664,11 @@ function App(){
   const [pdfType,setPdfType]=useState('month');
   const [pdfStart,setPdfStart]=useState('');
   const [pdfEnd,setPdfEnd]=useState('');
+  const [lightMode,setLightMode]=useState(false);
+
+  useEffect(()=>{
+    document.body.classList.toggle('light-mode',lightMode);
+  },[lightMode]);
 
   const isAdmin=currentUser?.role==='admin';
   const doctors=useMemo(()=>users.filter(u=>u.active&&u.role!=='admin'),[users]);
@@ -1636,6 +1703,68 @@ function App(){
       return {...prev, [date]: cur.map(id=>id===fromDocId?toDocId:id)};
     });
     setAdminEdits(ae=>({...ae,[date]:true}));
+  }
+
+  // ── JSON backup export ──
+  function exportJSON(){
+    const data=JSON.stringify(store,null,2);
+    const blob=new Blob([data],{type:'application/json'});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');
+    a.href=url; a.download=`medwatch-backup-${fmt(new Date())}.json`;
+    a.click(); URL.revokeObjectURL(url);
+  }
+
+  // ── JSON backup import ──
+  function importJSON(e){
+    const file=e.target.files?.[0]; if(!file) return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      try{
+        const data=JSON.parse(ev.target.result);
+        if(!data.users||!data.schedule) throw new Error('Ongeldig formaat');
+        if(!window.confirm(`Backup laden van ${file.name}?\nHuidige data wordt overschreven.`)) return;
+        setStore(data); saveStore(data);
+        alert('✓ Backup geladen!');
+      } catch(err){ alert('Fout: '+err.message); }
+    };
+    reader.readAsText(file);
+    e.target.value='';
+  }
+
+  // ── iCal (.ics) export ──
+  function exportIcal(){
+    const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//MedWatch//NL','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+    Object.entries(schedule).sort().forEach(([date,ids])=>{
+      ids.forEach(docId=>{
+        const doc=doctors.find(d=>d.id===docId); if(!doc) return;
+        const uid=`medwatch-${date}-${docId}@local`;
+        const dtstart=date.replace(/-/g,'');
+        const dtend=date.replace(/-/g,''); // same day = all-day
+        lines.push('BEGIN:VEVENT',`UID:${uid}`,`DTSTART;VALUE=DATE:${dtstart}`,
+          `DTEND;VALUE=DATE:${dtend}`,`SUMMARY:Wacht – ${doc.name}`,
+          `DESCRIPTION:${doc.name} heeft wacht op ${fmtDisplay(date)}`,
+          'END:VEVENT');
+      });
+    });
+    lines.push('END:VCALENDAR');
+    const blob=new Blob([lines.join('\r\n')],{type:'text/calendar'});
+    const url=URL.createObjectURL(blob); const a=document.createElement('a');
+    a.href=url; a.download='medwatch-planning.ics'; a.click(); URL.revokeObjectURL(url);
+  }
+
+  // ── Email (mailto:) per person ──
+  function emailDoctor(doc){
+    const shifts=Object.entries(schedule)
+      .filter(([,ids])=>ids.includes(doc.id))
+      .sort(([a],[b])=>a.localeCompare(b))
+      .map(([d])=>fmtDisplay(d));
+    if(!shifts.length){ alert(`${doc.name} heeft geen wachten ingepland.`); return; }
+    const subject=encodeURIComponent(`Wachtoverzicht – ${doc.name}`);
+    const body=encodeURIComponent(
+      `Beste ${doc.name.split(' ')[0]},\n\nJe wachtdata:\n\n${shifts.map(s=>`• ${s}`).join('\n')}\n\nTotaal: ${shifts.length} wacht${shifts.length!==1?'en':''}\n\nMedWatch`
+    );
+    window.open(`mailto:${doc.email||''}?subject=${subject}&body=${body}`);
   }
   function prevMonth(){ if(month===0){setMonth(11);setYear(y=>y-1);}else setMonth(m=>m-1); }
   function nextMonth(){ if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1); }
@@ -1762,6 +1891,15 @@ function App(){
           })}
         </nav>
         <div className="sidebar-user">
+          <div style={{display:'flex',alignItems:'center',gap:6,marginBottom:8}}>
+            <button className="btn btn-ghost btn-sm btn-icon" title={lightMode?'Donker':'Licht'} onClick={()=>setLightMode(v=>!v)} style={{fontSize:16,flex:1,justifyContent:'flex-start',gap:6}}>
+              {lightMode?'🌙':'☀️'} <span style={{fontSize:11}}>{lightMode?'Donker':'Licht'}</span>
+            </button>
+            {isAdmin&&<>
+              <button className="btn btn-ghost btn-sm btn-icon" title="Exporteer JSON" onClick={exportJSON} style={{fontSize:14}}>⬇</button>
+              <label className="btn btn-ghost btn-sm btn-icon" title="Importeer JSON" style={{fontSize:14,cursor:'pointer'}}>⬆<input type="file" accept=".json" style={{display:'none'}} onChange={importJSON}/></label>
+            </>}
+          </div>
           <div style={{display:'flex',alignItems:'center',gap:10}}>
             <Avatar doc={currentUser} size={32}/>
             <div style={{flex:1,minWidth:0}}>
@@ -2000,9 +2138,13 @@ function App(){
         {/* ═══════ OVERVIEW ═══════ */}
         {page==='overview'&&(
           <div className="fade-in">
-            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4,flexWrap:'wrap',gap:8}}>
               <h2 style={{fontSize:26,marginBottom:4}}>Verdeling Overzicht</h2>
-              <button className="btn btn-outline" onClick={()=>setPdfModal(true)}>📄 PDF exporteren</button>
+              <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+                <button className="btn btn-outline" onClick={()=>setPdfModal(true)}>📄 PDF</button>
+                <button className="btn btn-outline" onClick={exportIcal}>📆 iCal</button>
+                <button className="btn btn-outline" onClick={exportJSON}>⬇ JSON backup</button>
+              </div>
             </div>
             <p style={{color:'var(--muted)',fontSize:13,marginBottom:24}}>Analyse van de wachtverdeling</p>
             <div className="stats-grid">
@@ -2052,7 +2194,7 @@ function App(){
             <div className="card">
               <div className="card-header"><h3 className="card-title">Per {singular}</h3></div>
               <table className="dist-table">
-                <thead><tr><th>{SingU}</th><th>Totaal</th><th>+Overdracht</th><th>Weekdagen</th><th>Weekends</th><th>Feestdagen</th>{scheduleMode!=='random'&&<th>Max consec.</th>}<th>Status</th></tr></thead>
+                <thead><tr><th>{SingU}</th><th>Totaal</th><th>+Overdracht</th><th>Weekdagen</th><th>Weekends</th><th>Feestdagen</th><th>✓ Voork.</th><th>✕ Voork.</th>{scheduleMode!=='random'&&<th>Max consec.</th>}<th>Status</th><th></th></tr></thead>
                 <tbody>
                   {doctors.map(doc=>{
                     const s=stats[doc.id]||{total:0,weekday:0,weekend:0,holiday:0};
@@ -2060,13 +2202,21 @@ function App(){
                     const avg=doctors.reduce((a,d)=>a+(stats[d.id]?.total||0),0)/Math.max(1,doctors.length);
                     const status=Math.abs(s.total-avg)<1.5?'ok':Math.abs(s.total-avg)<3?'warn':'danger';
                     const consec=maxConsecWeeks(schedule,doc.id);
+                    // Count positive/negative preferences across all schedule dates
+                    const posHit=Object.entries(schedule).filter(([d,ids])=>ids.includes(doc.id)&&(preferences[d]||{})[doc.id]==='positive').length;
+                    const negHit=Object.entries(schedule).filter(([d,ids])=>ids.includes(doc.id)&&(preferences[d]||{})[doc.id]==='negative').length;
+                    const totalPos=Object.values(preferences).filter(dp=>dp[doc.id]==='positive').length;
+                    const totalNeg=Object.values(preferences).filter(dp=>dp[doc.id]==='negative').length;
                     return <tr key={doc.id}>
                       <td><div style={{display:'flex',alignItems:'center',gap:8}}><Avatar doc={doc} size={26}/>{doc.name}</div></td>
                       <td><strong>{s.total}</strong></td>
                       <td style={{color:'var(--accent)',fontSize:12}}>{co.total>0?`+${co.total} = ${s.total+(co.total||0)}`:'-'}</td>
                       <td>{s.weekday}</td><td>{s.weekend}</td><td>{s.holiday}</td>
+                      <td><span style={{color:'var(--positive)',fontSize:12}}>{posHit}/{totalPos}</span></td>
+                      <td><span style={{color:negHit>0?'var(--danger)':'var(--muted)',fontSize:12,fontWeight:negHit>0?700:400}}>{negHit>0?`⚠ ${negHit}`:'-'}</span></td>
                       {scheduleMode!=='random'&&<td><span style={{color:consec>1?'var(--danger)':'inherit',fontWeight:consec>1?700:400}}>{consec>0?consec:'-'}{consec>1?' ⚠':''}</span></td>}
                       <td><span className={`badge badge-${status}`}>{status==='ok'?'✓':status==='warn'?'~':'!'}</span></td>
+                      <td><button className="btn btn-ghost btn-sm btn-icon" title={`Mail naar ${doc.name}`} onClick={()=>emailDoctor(doc)}>✉</button></td>
                     </tr>;
                   })}
                 </tbody>
