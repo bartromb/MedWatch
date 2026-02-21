@@ -1,0 +1,1697 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedWatch — Wachtplanning v2</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0d1117;--surface:#161b22;--surface2:#1f2937;--border:#30363d;
+  --accent:#3b82f6;--accent2:#10b981;--warn:#f59e0b;--danger:#ef4444;
+  --text:#e6edf3;--muted:#8b949e;--positive:#10b981;--negative:#ef4444;
+  --weekend:rgba(245,158,11,0.13);--holiday:rgba(239,68,68,0.13);
+  --admin-edit:rgba(139,92,246,0.18);--locked:rgba(48,54,61,0.7);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;}
+h1,h2,h3{font-family:'DM Serif Display',serif;}
+.app{display:flex;min-height:100vh;}
+.sidebar{width:240px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;height:100vh;z-index:100;overflow-y:auto;}
+.main{margin-left:240px;flex:1;padding:32px;min-height:100vh;}
+.sidebar-logo{padding:22px 20px 18px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.sidebar-logo h1{font-size:21px;color:var(--accent);letter-spacing:-0.5px;}
+.sidebar-logo span{font-size:10px;color:var(--muted);font-weight:300;}
+.nav{flex:1;padding:10px 0;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;cursor:pointer;color:var(--muted);transition:all 0.15s;font-size:13px;font-weight:500;border-left:3px solid transparent;user-select:none;}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,0.03);}
+.nav-item.active{color:var(--accent);border-left-color:var(--accent);background:rgba(59,130,246,0.08);}
+.nav-section{padding:6px 20px 2px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.8px;margin-top:6px;}
+.sidebar-user{padding:14px 20px;border-top:1px solid var(--border);flex-shrink:0;}
+.login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;background:var(--bg);padding:20px;}
+.login-card{background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:40px;width:400px;max-width:100%;}
+.login-logo{text-align:center;margin-bottom:32px;}
+.login-logo h1{font-size:32px;color:var(--accent);}
+.login-logo p{color:var(--muted);font-size:13px;margin-top:4px;}
+.login-error{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--danger);padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;transition:all 0.15s;white-space:nowrap;}
+.btn:disabled{opacity:0.45;cursor:not-allowed;}
+.btn-primary{background:var(--accent);color:white;}.btn-primary:hover:not(:disabled){background:#2563eb;}
+.btn-success{background:var(--accent2);color:white;}.btn-success:hover:not(:disabled){background:#059669;}
+.btn-outline{background:transparent;color:var(--text);border:1px solid var(--border);}.btn-outline:hover:not(:disabled){background:var(--surface2);}
+.btn-danger{background:var(--danger);color:white;}.btn-danger:hover{background:#dc2626;}
+.btn-warn{background:rgba(245,158,11,0.15);color:var(--warn);border:1px solid rgba(245,158,11,0.3);}.btn-warn:hover{background:rgba(245,158,11,0.25);}
+.btn-ghost{background:transparent;color:var(--muted);border:none;}.btn-ghost:hover{color:var(--text);background:var(--surface2);}
+.btn-purple{background:rgba(139,92,246,0.2);color:#a78bfa;border:1px solid rgba(139,92,246,0.4);}.btn-purple:hover{background:rgba(139,92,246,0.35);}
+.btn-sm{padding:5px 10px;font-size:12px;}.btn-icon{padding:6px 8px;}
+.btn-full{width:100%;justify-content:center;}
+.form-group{margin-bottom:16px;}
+.form-label{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;display:block;}
+.form-input{width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:13px;}
+.form-input:focus{outline:none;border-color:var(--accent);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.pass-wrap{position:relative;}
+.pass-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--muted);font-size:16px;padding:2px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;}
+.card-title{font-size:16px;font-family:'DM Serif Display',serif;}
+.avatar{border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;flex-shrink:0;}
+.role-badge{font-size:10px;padding:2px 8px;border-radius:20px;margin-top:2px;width:fit-content;font-weight:600;}
+.badge-admin{background:rgba(59,130,246,0.2);color:var(--accent);}
+.badge-doctor{background:rgba(16,185,129,0.2);color:var(--positive);}
+
+/* ── CALENDAR ── */
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;}
+.cal-header-row{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:4px;}
+.cal-day-name{text-align:center;font-size:11px;font-weight:700;color:var(--muted);padding:6px;text-transform:uppercase;letter-spacing:0.5px;}
+.cal-day-name.weekend-header{color:var(--warn);}
+.cal-cell{min-height:100px;border-radius:8px;padding:6px;position:relative;border:1px solid transparent;transition:border-color 0.15s,background 0.15s;background:var(--surface2);}
+.cal-cell:hover{border-color:var(--border);}
+.cal-cell.weekend{background:var(--weekend);}
+.cal-cell.holiday{background:var(--holiday);}
+.cal-cell.other-month{opacity:0.3;}
+.cal-cell.today{border-color:var(--accent)!important;}
+.cal-cell.has-equity{border-color:var(--warn)!important;background:rgba(245,158,11,0.06);}
+.cal-cell.has-consec{border-color:rgba(239,68,68,0.4)!important;}
+.cal-cell.admin-modified{background:rgba(139,92,246,0.12)!important;border-color:rgba(139,92,246,0.5)!important;}
+.cal-cell.locked{opacity:0.75;}
+.cal-cell.locked .add-shift{display:none!important;}
+.lock-badge{position:absolute;top:3px;right:3px;font-size:10px;z-index:2;}
+.cal-date{font-size:11px;font-weight:700;color:var(--muted);margin-bottom:2px;}
+.cal-cell.today .cal-date{color:var(--accent);}
+.cal-holiday-tag{font-size:9px;color:var(--danger);font-weight:700;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px;}
+.doctor-tag{display:flex;align-items:center;gap:4px;padding:2px 5px;border-radius:4px;font-size:10px;font-weight:500;margin-top:2px;cursor:pointer;transition:opacity 0.1s;}
+.doctor-tag:hover{opacity:0.75;}
+.doctor-tag.highlight-me{box-shadow:0 0 0 1.5px currentColor;}
+.doctor-tag.admin-edit-tag{box-shadow:0 0 0 1.5px #8b5cf6;}
+.doctor-rank{font-size:8px;font-weight:900;margin-right:2px;opacity:0.7;}
+.remove-btn{opacity:0;margin-left:auto;font-size:9px;}
+.doctor-tag:hover .remove-btn{opacity:1;}
+.add-shift{font-size:10px;color:var(--muted);cursor:pointer;margin-top:3px;display:flex;align-items:center;gap:2px;}
+.add-shift:hover{color:var(--accent);}
+.cell-flags{position:absolute;top:3px;right:3px;display:flex;gap:2px;}
+.cell-flag{font-size:9px;padding:1px 4px;border-radius:3px;font-weight:700;line-height:1.4;}
+.flag-equity{background:rgba(245,158,11,0.25);color:var(--warn);}
+.flag-consec{background:rgba(239,68,68,0.2);color:var(--danger);}
+.flag-modified{background:rgba(139,92,246,0.25);color:#a78bfa;}
+.flag-locked{background:rgba(48,54,61,0.8);color:var(--muted);}
+.period-bar{position:absolute;bottom:0;left:0;right:0;height:3px;border-radius:0 0 7px 7px;}
+.slots-indicator{font-size:9px;position:absolute;top:3px;left:5px;color:var(--muted);font-weight:700;}
+.cal-nav{display:flex;align-items:center;gap:12px;}
+.cal-nav button{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 10px;cursor:pointer;font-size:16px;}
+.cal-nav button:hover{background:var(--border);}
+.month-title{font-family:'DM Serif Display',serif;font-size:20px;min-width:180px;}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;}
+.stat-value{font-size:28px;font-family:'DM Serif Display',serif;}
+.stat-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:2px;}
+.doctor-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border);}
+.doctor-row:last-child{border-bottom:none;}
+.doctor-info{flex:1;}
+.progress-bar{height:6px;background:var(--surface2);border-radius:3px;flex:1;overflow:hidden;}
+.progress-fill{height:100%;border-radius:3px;transition:width 0.3s;}
+.dist-table{width:100%;border-collapse:collapse;}
+.dist-table th{text-align:left;padding:8px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);}
+.dist-table td{padding:10px 12px;border-bottom:1px solid rgba(48,54,61,0.5);font-size:13px;}
+.dist-table tr:hover td{background:var(--surface2);}
+.badge{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:22px;border-radius:4px;font-size:12px;font-weight:700;padding:0 6px;}
+.badge-ok{background:rgba(16,185,129,0.15);color:var(--positive);}
+.badge-warn{background:rgba(245,158,11,0.15);color:var(--warn);}
+.badge-danger{background:rgba(239,68,68,0.15);color:var(--danger);}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:28px;width:540px;max-width:95vw;max-height:88vh;overflow-y:auto;}
+.modal-lg{width:720px;}
+.alert{display:flex;align-items:flex-start;gap:10px;padding:12px 16px;border-radius:8px;font-size:13px;margin-bottom:12px;}
+.alert-warn{background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.3);color:var(--warn);}
+.alert-danger{background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.3);color:var(--danger);}
+.alert-success{background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);color:var(--positive);}
+.alert-info{background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.25);color:#93c5fd;}
+.alert-purple{background:rgba(139,92,246,0.08);border:1px solid rgba(139,92,246,0.3);color:#c4b5fd;}
+.legend{display:flex;gap:16px;flex-wrap:wrap;}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);}
+.legend-box{width:14px;height:14px;border-radius:3px;}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:600;}
+.chip-danger{background:rgba(239,68,68,0.15);color:var(--danger);}
+.chip-ok{background:rgba(16,185,129,0.15);color:var(--positive);}
+.chip-warn{background:rgba(245,158,11,0.15);color:var(--warn);}
+.chip-accent{background:rgba(59,130,246,0.15);color:var(--accent);}
+.chip-purple{background:rgba(139,92,246,0.15);color:#a78bfa;}
+.equity-bar{display:flex;align-items:center;gap:12px;padding:12px 20px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;}
+.suggestion-panel{background:var(--surface);border:2px solid rgba(245,158,11,0.4);border-radius:12px;padding:20px;margin-bottom:20px;animation:fadeIn 0.3s ease;}
+.suggestion-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);margin-bottom:8px;}
+.suggestion-row.best{border-color:var(--accent2);background:rgba(16,185,129,0.06);}
+.suggestion-row.risky{border-color:rgba(245,158,11,0.4);}
+.period-row{display:flex;align-items:center;gap:12px;padding:14px 16px;border-radius:10px;border:1px solid var(--border);background:var(--surface2);margin-bottom:8px;}
+.period-row:hover{border-color:rgba(255,255,255,0.1);}
+.period-info{flex:1;}
+.period-name{font-weight:600;font-size:13px;}
+.period-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.period-slots-badge{display:flex;align-items:center;gap:4px;padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;}
+.slot-picker{display:flex;align-items:center;gap:8px;}
+.slot-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:all 0.15s;}
+.slot-btn:hover{border-color:var(--accent);color:var(--accent);}
+.slot-num{font-size:22px;font-family:'DM Serif Display',serif;min-width:32px;text-align:center;}
+.color-swatches{display:flex;gap:6px;flex-wrap:wrap;}
+.color-swatch{width:26px;height:26px;border-radius:6px;cursor:pointer;transition:transform 0.1s;border:2px solid transparent;}
+.color-swatch:hover{transform:scale(1.15);}
+.color-swatch.selected{border-color:white;}
+.doc-toggle{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:6px;cursor:pointer;border:1px solid var(--border);transition:all 0.15s;font-size:12px;}
+.doc-toggle.on{border-color:currentColor;}
+.empty-state{text-align:center;padding:48px 24px;color:var(--muted);}
+.empty-icon{font-size:40px;margin-bottom:12px;}
+.empty-title{font-family:'DM Serif Display',serif;font-size:18px;color:var(--text);margin-bottom:6px;}
+.user-table{width:100%;border-collapse:collapse;}
+.user-table th{text-align:left;padding:8px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid var(--border);}
+.user-table td{padding:10px 12px;border-bottom:1px solid rgba(48,54,61,0.4);vertical-align:middle;}
+.user-table tr:hover td{background:var(--surface2);}
+.status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:5px;}
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:var(--surface);}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.fade-in{animation:fadeIn 0.25s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@media(max-width:1100px){.months-yr-grid{grid-template-columns:repeat(3,1fr)!important}}
+@media(max-width:900px){.sidebar{width:200px;}.main{margin-left:200px;}.months-yr-grid{grid-template-columns:repeat(2,1fr)!important}}
+
+/* ── PROBLEMS PANEL ── */
+.problems-panel{background:var(--surface);border:2px solid rgba(239,68,68,0.4);border-radius:12px;padding:16px;margin-bottom:20px;}
+.problem-item{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;margin-bottom:6px;font-size:12px;}
+.problem-item.p-danger{background:rgba(239,68,68,0.08);border:1px solid rgba(239,68,68,0.2);color:#fca5a5;}
+.problem-item.p-warn{background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.2);color:#fcd34d;}
+.problem-item.p-info{background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.2);color:#93c5fd;}
+
+/* ── LOCK INDICATOR ── */
+.lock-stripe{background:repeating-linear-gradient(45deg,rgba(48,54,61,0.4),rgba(48,54,61,0.4) 3px,transparent 3px,transparent 8px);}
+
+/* ── RANK DOTS ── */
+.rank-pill{font-size:9px;font-weight:900;padding:1px 4px;border-radius:3px;margin-right:3px;background:rgba(0,0,0,0.3);}
+
+/* PDF print styles */
+@media print{
+  body{background:#fff!important;color:#000!important;}
+  .sidebar,.btn,.modal-overlay,.no-print{display:none!important;}
+  .main{margin-left:0!important;padding:12px!important;}
+  .cal-cell{break-inside:avoid;border:1px solid #ccc!important;background:#fff!important;min-height:80px;}
+  .cal-cell.weekend{background:#fff8e1!important;}
+  .cal-cell.holiday{background:#ffeaea!important;}
+  .doctor-tag{background:#eee!important;color:#000!important;}
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useMemo, useEffect, useCallback, useRef } = React;
+
+const COLORS = ['#3b82f6','#10b981','#f59e0b','#ec4899','#8b5cf6','#06b6d4','#f97316','#84cc16','#e11d48','#0891b2'];
+const PERIOD_COLORS = ['#6366f1','#0ea5e9','#10b981','#f97316','#ec4899','#f59e0b','#8b5cf6','#14b8a6','#ef4444','#84cc16'];
+const WEEKDAYS = ['Zo','Ma','Di','Wo','Do','Vr','Za'];
+const MONTHS = ['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'];
+const MONTHS_SHORT = ['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
+const DAY_TYPE_LABELS = {weekday:'Weekdag',weekend:'Weekend',holiday:'Feestdag'};
+const RANK_LABELS = ['1e','2e','3e','4e','5e'];
+
+const BE_HOLIDAYS = {
+  '2025-01-01':'Nieuwjaar','2025-04-21':'Paasmaandag','2025-05-01':'Dag vd Arbeid',
+  '2025-05-29':'O.H. Hemelvaart','2025-06-09':'Pinkstermaandag','2025-07-21':'Nationale feestdag',
+  '2025-08-15':'O.L.V. Hemelvaart','2025-11-01':'Allerheiligen','2025-11-11':'Wapenstilstand','2025-12-25':'Kerstmis',
+  '2026-01-01':'Nieuwjaar','2026-04-06':'Paasmaandag','2026-05-01':'Dag vd Arbeid',
+  '2026-05-14':'O.H. Hemelvaart','2026-05-25':'Pinkstermaandag','2026-07-21':'Nationale feestdag',
+  '2026-08-17':'O.L.V. Hemelvaart','2026-11-02':'Allerheiligen','2026-11-11':'Wapenstilstand','2026-12-25':'Kerstmis',
+  '2027-01-01':'Nieuwjaar','2027-04-05':'Paasmaandag','2027-05-01':'Dag vd Arbeid',
+  '2027-05-13':'O.H. Hemelvaart','2027-05-24':'Pinkstermaandag','2027-07-21':'Nationale feestdag',
+  '2027-08-15':'O.L.V. Hemelvaart','2027-11-01':'Allerheiligen','2027-11-11':'Wapenstilstand','2027-12-25':'Kerstmis',
+};
+
+// ─── STORAGE ──────────────────────────────────────────────────────────────────
+const STORE_KEY = 'medwatch_v2';
+function loadStore() { try { return JSON.parse(localStorage.getItem(STORE_KEY)) || {}; } catch { return {}; } }
+function saveStore(data) { try { localStorage.setItem(STORE_KEY, JSON.stringify(data)); } catch {} }
+function hashPass(pw) { let h=0; for(let i=0;i<pw.length;i++){h=(Math.imul(31,h)+pw.charCodeAt(i))|0;} return h.toString(36); }
+
+function initStore() {
+  const s = loadStore();
+  if (s.users) return s;
+  const initial = {
+    users: [{ id:1, name:'Admin', initials:'AD', color:COLORS[0], role:'admin', username:'admin', passHash:hashPass('admin123'), active:true }],
+    schedule: {}, preferences: {}, periods: [],
+    adminEdits: {}, // { date: true } — tracks which dates were manually edited
+    lockedRanges: [], // [{start,end,label}]
+    customHolidays: {}, // { 'YYYY-MM-DD': 'label' }
+    carryOver: {}, // { docId: {weekday:0, weekend:0, holiday:0, total:0} }
+    roleLabel: { singular: 'arts', plural: 'artsen', icon: '👨‍⚕️', planningTitle: 'Wachtplanning' },
+  };
+  saveStore(initial);
+  return initial;
+}
+
+// ─── ROLE LABEL HELPERS ───────────────────────────────────────────────────────
+// rl = roleLabel object
+function rl1(rl){ return rl?.singular||'arts'; }        // "arts"
+function rlN(rl){ return rl?.plural||'artsen'; }        // "artsen"
+function rl1U(rl){ const s=rl1(rl); return s.charAt(0).toUpperCase()+s.slice(1); } // "Arts"
+function rlNU(rl){ const s=rlN(rl); return s.charAt(0).toUpperCase()+s.slice(1); } // "Artsen"
+function rlIcon(rl){ return rl?.icon||'👨‍⚕️'; }
+function rlTitle(rl){ return rl?.planningTitle||'Wachtplanning'; }
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────────
+function fmt(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function fmtDisplay(ds){ const d=new Date(ds+'T00:00:00'); return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]}`; }
+function fmtLong(ds){ const d=new Date(ds+'T00:00:00'); return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear()}`; }
+function isWeekend(ds){ const d=new Date(ds+'T00:00:00').getDay(); return d===0||d===6; }
+function isHoliday(ds, customH={}){ return !!(BE_HOLIDAYS[ds]||customH[ds]); }
+function getHolidayName(ds, customH={}){ return BE_HOLIDAYS[ds]||customH[ds]||null; }
+function getDayType(ds, customH={}){ if(isHoliday(ds,customH)) return 'holiday'; if(isWeekend(ds)) return 'weekend'; return 'weekday'; }
+function getISOWeek(ds){
+  const d=new Date(ds+'T00:00:00'); d.setHours(0,0,0,0);
+  d.setDate(d.getDate()+3-(d.getDay()+6)%7);
+  const w1=new Date(d.getFullYear(),0,4);
+  return `${d.getFullYear()}-W${String(1+Math.round(((d-w1)/86400000-3+(w1.getDay()+6)%7)/7)).padStart(2,'0')}`;
+}
+function weeksConsecutive(a,b){
+  if(!a||!b||a===b) return false;
+  const [ya,wa]=a.split('-W').map(Number); const [yb,wb]=b.split('-W').map(Number);
+  if(ya===yb) return Math.abs(wb-wa)===1;
+  if(yb===ya+1) return wa>=51&&wb===1;
+  if(ya===yb+1) return wb>=51&&wa===1;
+  return false;
+}
+function getDaysInMonth(year,month){
+  const days=[]; const first=new Date(year,month,1); const last=new Date(year,month+1,0);
+  for(let i=0;i<first.getDay();i++){ const d=new Date(year,month,1-first.getDay()+i); days.push({date:fmt(d),current:false}); }
+  for(let n=1;n<=last.getDate();n++) days.push({date:fmt(new Date(year,month,n)),current:true});
+  while(days.length%7!==0){ const n=days.length-last.getDate()-first.getDay()+1; days.push({date:fmt(new Date(year,month+1,n)),current:false}); }
+  return days;
+}
+function maxConsecWeeks(schedule,docId){
+  const weeks=[...new Set(Object.entries(schedule).filter(([,ids])=>ids.includes(docId)).map(([d])=>getISOWeek(d)))].sort();
+  if(!weeks.length) return 0;
+  let max=1,cur=1;
+  for(let i=1;i<weeks.length;i++){ if(weeksConsecutive(weeks[i-1],weeks[i])){ cur++; max=Math.max(max,cur); } else cur=1; }
+  return Math.max(max,1);
+}
+function wouldViolateConsec(schedule,docId,date){
+  const wk=getISOWeek(date);
+  const sorted=Object.entries(schedule).filter(([d,ids])=>ids.includes(docId)).map(([d])=>d).sort();
+  const before=sorted.filter(d=>d<date); const after=sorted.filter(d=>d>date);
+  const prevWk=before.length?getISOWeek(before[before.length-1]):null;
+  const nextWk=after.length?getISOWeek(after[0]):null;
+  return weeksConsecutive(prevWk,wk)||weeksConsecutive(wk,nextWk);
+}
+function computeStats(schedule, doctors, customH={}) {
+  const stats={};
+  doctors.forEach(d=>{stats[d.id]={total:0,weekday:0,weekend:0,holiday:0};});
+  Object.entries(schedule).forEach(([date,ids])=>{
+    ids.forEach(id=>{if(!stats[id]) return; stats[id].total++; stats[id][getDayType(date,customH)]++;});
+  });
+  return stats;
+}
+function getSlotsForDate(date,periods){
+  const dayType=getDayType(date);
+  let slots=1;
+  for(const p of periods){
+    if(date>=p.start&&date<=p.end){
+      slots=p.slotsByType?p.slotsByType[dayType]:(p.slots||1);
+    }
+  }
+  return slots;
+}
+function getPeriodForDate(date,periods){
+  for(let i=periods.length-1;i>=0;i--){ if(date>=periods[i].start&&date<=periods[i].end) return periods[i]; }
+  return null;
+}
+function isDateLocked(date, lockedRanges=[]) {
+  return lockedRanges.some(r=>date>=r.start&&date<=r.end);
+}
+
+// ─── RANK ASSIGNMENT ─────────────────────────────────────────────────────────
+// For multi-slot periods: assign rank 1,2,... per week consistently
+// rankMap: { 'YYYY-WNN:periodId:rankIdx': docId }
+function buildRankMap(schedule, periods) {
+  const rankMap = {}; // weekKey:rankIdx -> docId
+  // For each date with >1 slot, within a period
+  Object.entries(schedule).forEach(([date, docIds]) => {
+    const period = getPeriodForDate(date, periods);
+    if (!period) return;
+    const slots = getSlotsForDate(date, periods);
+    if (slots <= 1) return;
+    const wk = getISOWeek(date);
+    const key = `${wk}:${period.id}`;
+    if (!rankMap[key]) rankMap[key] = {};
+    docIds.forEach((docId, idx) => {
+      if (rankMap[key][idx] === undefined) rankMap[key][idx] = docId;
+    });
+  });
+  return rankMap;
+}
+
+// ─── AUTO SCHEDULE (enhanced) ─────────────────────────────────────────────────
+function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences, existing, periods, lockedRanges, carryOver={}, customH={}) {
+  const sched = {...existing};
+  const dates = [];
+  for(let d=new Date(startDate+'T00:00:00');d<=new Date(endDate+'T00:00:00');d.setDate(d.getDate()+1)) dates.push(fmt(d));
+  
+  const cnt={}, wdC={}, weC={}, hdC={};
+  allDoctors.forEach(d=>{
+    cnt[d.id]=carryOver[d.id]?.total||0;
+    wdC[d.id]=carryOver[d.id]?.weekday||0;
+    weC[d.id]=carryOver[d.id]?.weekend||0;
+    hdC[d.id]=carryOver[d.id]?.holiday||0;
+  });
+  Object.entries(sched).forEach(([date,ids])=>{
+    ids.forEach(id=>{if(cnt[id]===undefined) return; cnt[id]++;
+      const t=getDayType(date,customH);
+      if(t==='holiday') hdC[id]++; else if(t==='weekend') weC[id]++; else wdC[id]++;});
+  });
+  const lastWk={};
+  allDoctors.forEach(d=>{lastWk[d.id]=null;});
+  Object.entries(sched).sort().forEach(([date,ids])=>{ids.forEach(id=>{if(lastWk[id]!==undefined) lastWk[id]=getISOWeek(date);});});
+
+  // For rank consistency: track which doc had which rank in a week:period
+  const weekRankAssignment = {}; // 'YYYY-WNN:periodId:rankIdx' -> docId
+
+  dates.forEach(date=>{
+    if(isDateLocked(date, lockedRanges)) return;
+    const slots=getSlotsForDate(date,periods);
+    const prefs=preferences[date]||{}; const t=getDayType(date,customH); const curWk=getISOWeek(date);
+    const period=getPeriodForDate(date,periods);
+    const eligible=(periodDoctors[date]||allDoctors);
+    const existingAssigned=(sched[date]||[]);
+    const needed=Math.max(0,slots-existingAssigned.length);
+    if(needed===0) return;
+    const notYet=eligible.filter(d=>!existingAssigned.includes(d.id));
+    
+    // For each rank slot needed, prefer doctor already assigned to that rank this week
+    const chosen = [];
+    const remaining = [...notYet];
+    for(let rankIdx=existingAssigned.length; rankIdx<slots && remaining.length>0; rankIdx++){
+      const wrkKey = period?`${curWk}:${period.id}:${rankIdx}`:null;
+      // If we have a preferred doc for this rank this week, prioritize them
+      const preferredForRank = wrkKey&&weekRankAssignment[wrkKey];
+      
+      const scored = remaining.map(doc=>{
+        let s=0;
+        if(t==='holiday') s-=hdC[doc.id]*3; else if(t==='weekend') s-=weC[doc.id]*2; else s-=wdC[doc.id];
+        if(prefs[doc.id]==='positive') s+=5; if(prefs[doc.id]==='negative') s-=10;
+        if(lastWk[doc.id]&&weeksConsecutive(lastWk[doc.id],curWk)) s-=100;
+        if(preferredForRank&&doc.id===preferredForRank) s+=50; // strongly prefer rank consistency
+        s+=Math.random()*0.4;
+        return {doc,s};
+      });
+      scored.sort((a,b)=>b.s-a.s);
+      const pick = scored[0].doc;
+      chosen.push(pick);
+      remaining.splice(remaining.findIndex(d=>d.id===pick.id),1);
+      if(wrkKey) weekRankAssignment[wrkKey]=pick.id;
+    }
+    
+    sched[date]=[...existingAssigned,...chosen.map(d=>d.id)];
+    chosen.forEach(doc=>{ cnt[doc.id]++; lastWk[doc.id]=curWk;
+      if(t==='holiday') hdC[doc.id]++; else if(t==='weekend') weC[doc.id]++; else wdC[doc.id]++;});
+  });
+  return sched;
+}
+
+// ─── EQUITY SUGGESTIONS ───────────────────────────────────────────────────────
+function buildSuggestions(schedule,doctors,stats,date,newDocId,customH={}){
+  if(!newDocId||!Object.keys(schedule).length) return [];
+  const dayType=getDayType(date,customH); const myCount=stats[newDocId]?.[dayType]||0;
+  const suggestions=[];
+  doctors.filter(d=>d.id!==newDocId).forEach(candidate=>{
+    const theirCount=stats[candidate.id]?.[dayType]||0; const diff=myCount-theirCount;
+    if(diff<1) return;
+    const cDates=Object.entries(schedule).filter(([d,ids])=>ids.includes(newDocId)&&getDayType(d,customH)===dayType&&d!==date).map(([d])=>d).sort();
+    if(!cDates.length) return;
+    const noViol=cDates.filter(d=>{const tmp={...schedule,[d]:schedule[d].filter(id=>id!==newDocId)}; return !wouldViolateConsec(tmp,candidate.id,d);});
+    const swapDate=noViol[0]||cDates[0];
+    suggestions.push({candidate,swapDate,diff,risky:!noViol.includes(swapDate)});
+  });
+  suggestions.sort((a,b)=>b.diff-a.diff||a.risky-b.risky);
+  return suggestions.slice(0,4);
+}
+
+// ─── PROBLEM DETECTION ───────────────────────────────────────────────────────
+function detectProblems(schedule, doctors, periods, lockedRanges, customH={}) {
+  const problems = [];
+  const stats = computeStats(schedule, doctors, customH);
+  const avg = doctors.reduce((a,d)=>a+(stats[d.id]?.total||0),0)/Math.max(1,doctors.length);
+  
+  // Equity problems
+  doctors.forEach(doc => {
+    const tot = stats[doc.id]?.total||0;
+    const diff = Math.abs(tot-avg);
+    if(diff>=3) problems.push({type:'danger', icon:'⚖', text:`${doc.name}: ${tot} wachten (gem. ${avg.toFixed(1)}) — verschil ${diff.toFixed(0)}`});
+    else if(diff>=1.5) problems.push({type:'warn', icon:'⚖', text:`${doc.name}: lichte afwijking (${tot} vs gem. ${avg.toFixed(1)})`});
+  });
+  
+  // Consecutive weeks
+  doctors.forEach(doc => {
+    const consec = maxConsecWeeks(schedule, doc.id);
+    if(consec>1) problems.push({type:'danger', icon:'📅', text:`${doc.name}: ${consec} opeenvolgende weken wacht`});
+  });
+  
+  // Open slots
+  const openDates = Object.entries(schedule)
+    .filter(([date,ids])=>{ const p=getPeriodForDate(date,periods); const needed=getSlotsForDate(date,periods); return ids.length<needed; })
+    .map(([d])=>d).filter(d=>{ const p=getPeriodForDate(d,periods); return p!==null; });
+  if(openDates.length>0) problems.push({type:'warn', icon:'🕳', text:`${openDates.length} datum(s) niet volledig ingevuld binnen periodes`});
+  
+  // Lock conflicts (modified dates in locked ranges)
+  // (detected via adminEdits)
+  
+  return problems;
+}
+
+// ─── PDF EXPORT ───────────────────────────────────────────────────────────────
+function exportToPDF(title, startDate, endDate, schedule, doctors, periods, customH={}, roleLabel={}) {
+  const dates = [];
+  for(let d=new Date(startDate+'T00:00:00'); d<=new Date(endDate+'T00:00:00'); d.setDate(d.getDate()+1)) dates.push(fmt(d));
+  
+  // Group dates by week for layout
+  let html = `<html><head><meta charset="UTF-8"><style>
+    body{font-family:Arial,sans-serif;font-size:11px;color:#000;margin:20px;}
+    h1{font-size:18px;margin-bottom:4px;} h2{font-size:13px;color:#555;margin-bottom:16px;}
+    .month-block{margin-bottom:24px;}
+    .month-title{font-size:14px;font-weight:bold;margin-bottom:6px;border-bottom:2px solid #333;padding-bottom:4px;}
+    table{width:100%;border-collapse:collapse;margin-bottom:8px;}
+    th{background:#222;color:#fff;padding:5px 8px;font-size:10px;text-align:center;}
+    td{border:1px solid #ddd;padding:5px 6px;vertical-align:top;min-height:50px;font-size:10px;}
+    td.weekend{background:#fff8e1;}
+    td.holiday{background:#ffeaea;}
+    td.locked{background:#f5f5f5;}
+    .date-num{font-weight:bold;font-size:12px;display:block;margin-bottom:3px;}
+    .holiday-name{color:#cc0000;font-size:9px;font-weight:bold;}
+    .doc-name{display:block;padding:2px 4px;border-radius:3px;margin-top:2px;font-size:9px;}
+    .lock-icon{font-size:9px;color:#999;}
+    .stats-table{width:100%;border-collapse:collapse;margin-top:16px;}
+    .stats-table th{background:#444;color:#fff;padding:5px 8px;font-size:10px;}
+    .stats-table td{border:1px solid #ccc;padding:5px 8px;font-size:10px;}
+    .rank-label{font-size:8px;color:#888;font-weight:bold;}
+    @media print{body{margin:8px;} .pagebreak{page-break-before:always;}}
+  </style></head><body>`;
+  
+  html += `<h1>📅 ${title}</h1><h2>${fmtLong(startDate)} — ${fmtLong(endDate)}</h2>`;
+  
+  // Group by month
+  const byMonth = {};
+  dates.forEach(date => {
+    const d = new Date(date+'T00:00:00');
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    if(!byMonth[key]) byMonth[key]={year:d.getFullYear(),month:d.getMonth(),dates:[]};
+    byMonth[key].dates.push(date);
+  });
+  
+  Object.values(byMonth).forEach((mb,mi) => {
+    if(mi>0) html += `<div class="pagebreak"></div>`;
+    html += `<div class="month-block"><div class="month-title">${MONTHS[mb.month]} ${mb.year}</div>`;
+    html += `<table><tr>${WEEKDAYS.map((w,i)=>`<th style="${i===0||i===6?'background:#555;':''}">${w}</th>`).join('')}</tr>`;
+    
+    const allDays = getDaysInMonth(mb.year, mb.month);
+    let row = '<tr>';
+    allDays.forEach(({date,current},idx) => {
+      if(idx>0&&idx%7===0) { row += '</tr><tr>'; }
+      if(!current){ row += '<td style="background:#fafafa;"></td>'; return; }
+      const hlName = getHolidayName(date,customH);
+      const wknd = isWeekend(date);
+      const assigned = schedule[date]||[];
+      const period = getPeriodForDate(date,periods);
+      const slots = getSlotsForDate(date,periods);
+      
+      let cls = wknd?'weekend':''; if(hlName) cls='holiday';
+      row += `<td class="${cls}">
+        <span class="date-num">${new Date(date+'T00:00:00').getDate()}</span>
+        ${hlName?`<span class="holiday-name">🔴 ${hlName}</span>`:''}
+        ${assigned.map((docId,ri)=>{
+          const doc=doctors.find(d=>d.id===docId);
+          if(!doc) return '';
+          const rank=slots>1?`<span class="rank-label">${RANK_LABELS[ri]||ri+1+'e'} </span>`:'';
+          return `<span class="doc-name" style="background:${doc.color}22;color:${doc.color};">${rank}${doc.name.split(' ').slice(1).join(' ')||doc.name}</span>`;
+        }).join('')}
+        ${period&&assigned.length<slots?`<span style="color:#cc0000;font-size:8px;">⚠ ${assigned.length}/${slots}</span>`:''}
+      </td>`;
+    });
+    row += '</tr>';
+    html += row + '</table></div>';
+  });
+  
+  // Stats table
+  const stats = computeStats(schedule, doctors, customH);
+  html += `<div class="pagebreak"></div><h2>Verdeling overzicht (${fmtLong(startDate)} – ${fmtLong(endDate)})</h2>
+  <table class="stats-table"><tr><th>${rl1U(roleLabel)}</th><th>Totaal</th><th>Weekdagen</th><th>Weekends</th><th>Feestdagen</th></tr>
+  ${doctors.map(doc=>{
+    const s=stats[doc.id]||{total:0,weekday:0,weekend:0,holiday:0};
+    return `<tr><td>${doc.name}</td><td><b>${s.total}</b></td><td>${s.weekday}</td><td>${s.weekend}</td><td>${s.holiday}</td></tr>`;
+  }).join('')}
+  </table>`;
+  
+  html += `</body></html>`;
+  
+  const win = window.open('','_blank','width=900,height=700');
+  win.document.write(html);
+  win.document.close();
+  setTimeout(()=>win.print(),500);
+}
+
+// ─── SMALL COMPONENTS ─────────────────────────────────────────────────────────
+function Avatar({doc,size=32}){
+  return <div className="avatar" style={{background:doc.color+'33',color:doc.color,width:size,height:size,fontSize:Math.round(size*0.38),minWidth:size}}>{doc.initials}</div>;
+}
+function ModalWrap({title,subtitle,onClose,large,children}){
+  return <div className="modal-overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
+    <div className={`modal fade-in${large?' modal-lg':''}`}>
+      <div style={{display:'flex',alignItems:'flex-start',justifyContent:'space-between',marginBottom:20}}>
+        <div>
+          <h2 style={{fontFamily:"'DM Serif Display',serif",fontSize:20}}>{title}</h2>
+          {subtitle&&<p style={{fontSize:12,color:'var(--muted)',marginTop:3}}>{subtitle}</p>}
+        </div>
+        <button className="btn btn-outline btn-sm btn-icon" onClick={onClose} style={{marginLeft:16,flexShrink:0}}>✕</button>
+      </div>
+      {children}
+    </div>
+  </div>;
+}
+function SlotPicker({value,onChange,min=1,max=10,label='arts'}){
+  return <div className="slot-picker">
+    <button className="slot-btn" onClick={()=>onChange(Math.max(min,value-1))}>−</button>
+    <span className="slot-num" style={{color:'var(--accent)'}}>{value}</span>
+    <button className="slot-btn" onClick={()=>onChange(Math.min(max,value+1))}>+</button>
+    <span style={{fontSize:12,color:'var(--muted)',marginLeft:4}}>{label}{value!==1?'s':''} per dag</span>
+  </div>;
+}
+
+// ─── LOGIN ────────────────────────────────────────────────────────────────────
+function LoginPage({users,onLogin}){
+  const [username,setUsername]=useState('');
+  const [password,setPassword]=useState('');
+  const [showPw,setShowPw]=useState(false);
+  const [error,setError]=useState('');
+  function attempt(){
+    const u=users.find(u=>u.username===username.trim()&&u.passHash===hashPass(password)&&u.active);
+    if(u) onLogin(u); else{ setError('Ongeldig gebruikersnaam of wachtwoord.'); setPassword(''); }
+  }
+  return (
+    <div className="login-wrap">
+      <div className="login-card fade-in">
+        <div className="login-logo"><h1>MedWatch</h1><p>Wachtplanning v2 — inloggen</p></div>
+        {error&&<div className="login-error">{error}</div>}
+        <div className="form-group">
+          <label className="form-label">Gebruikersnaam</label>
+          <input className="form-input" value={username} onChange={e=>setUsername(e.target.value)} onKeyDown={e=>e.key==='Enter'&&attempt()} autoFocus placeholder="gebruikersnaam"/>
+        </div>
+        <div className="form-group" style={{marginBottom:24}}>
+          <label className="form-label">Wachtwoord</label>
+          <div className="pass-wrap">
+            <input className="form-input" type={showPw?'text':'password'} value={password} onChange={e=>setPassword(e.target.value)} onKeyDown={e=>e.key==='Enter'&&attempt()} placeholder="••••••••"/>
+            <button className="pass-toggle" onClick={()=>setShowPw(v=>!v)}>{showPw?'🙈':'👁'}</button>
+          </div>
+        </div>
+        <button className="btn btn-primary btn-full" onClick={attempt}>Inloggen</button>
+        <p style={{fontSize:11,color:'var(--muted)',textAlign:'center',marginTop:16}}>Standaard: <strong>admin</strong> / <strong>admin123</strong></p>
+      </div>
+    </div>
+  );
+}
+
+// ─── PERIOD FORM ──────────────────────────────────────────────────────────────
+function PeriodForm({period,doctors,onSave,onClose,roleLabel={}}){
+  const [name,setName]=useState(period?.name||'');
+  const [start,setStart]=useState(period?.start||'');
+  const [end,setEnd]=useState(period?.end||'');
+  const [slots,setSlots]=useState(period?.slots||1);
+  const [color,setColor]=useState(period?.color||PERIOD_COLORS[0]);
+  const [useDayTypes,setUseDayTypes]=useState(!!period?.slotsByType);
+  const [slotsByType,setSlotsByType]=useState(period?.slotsByType||{weekday:1,weekend:2,holiday:2});
+  const [eligibleDocs,setEligibleDocs]=useState(period?.eligibleDocs||doctors.map(d=>d.id));
+  function save(){
+    if(!name.trim()||!start||!end||start>end) return;
+    onSave({id:period?.id||Date.now(),name:name.trim(),start,end,slots,color,
+      slotsByType:useDayTypes?slotsByType:null,
+      eligibleDocs:eligibleDocs.length===doctors.length?null:eligibleDocs});
+  }
+  return <>
+    <div className="form-row" style={{marginBottom:16}}>
+      <div className="form-group" style={{marginBottom:0}}>
+        <label className="form-label">Naam</label>
+        <input className="form-input" placeholder="bv. Zomervakantie" value={name} onChange={e=>setName(e.target.value)}/>
+      </div>
+      <div className="form-group" style={{marginBottom:0}}>
+        <label className="form-label">Kleur</label>
+        <div className="color-swatches" style={{marginTop:6}}>{PERIOD_COLORS.map(c=><div key={c} className={`color-swatch${color===c?' selected':''}`} style={{background:c}} onClick={()=>setColor(c)}/>)}</div>
+      </div>
+    </div>
+    <div className="form-row" style={{marginBottom:16}}>
+      <div className="form-group" style={{marginBottom:0}}><label className="form-label">Startdatum</label><input type="date" className="form-input" value={start} onChange={e=>setStart(e.target.value)}/></div>
+      <div className="form-group" style={{marginBottom:0}}><label className="form-label">Einddatum</label><input type="date" className="form-input" value={end} onChange={e=>setEnd(e.target.value)}/></div>
+    </div>
+    <div className="form-group">
+      <label className="form-label">{rl1U(roleLabel)} per dag</label>
+      <label style={{display:'flex',alignItems:'center',gap:6,cursor:'pointer',fontSize:13,marginBottom:10}}>
+        <input type="checkbox" checked={useDayTypes} onChange={e=>setUseDayTypes(e.target.checked)} style={{accentColor:'var(--accent)'}}/>
+        Verschilt per dagtype
+      </label>
+      {!useDayTypes?<SlotPicker value={slots} onChange={setSlots} label={rl1(roleLabel)}/>:(
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          {['weekday','weekend','holiday'].map(dt=>(
+            <div key={dt} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 14px',borderRadius:8,background:'var(--surface2)',border:'1px solid var(--border)'}}>
+              <span style={{fontSize:12,fontWeight:700,color:'var(--muted)',width:70,textTransform:'uppercase',letterSpacing:'0.4px'}}>{DAY_TYPE_LABELS[dt]}</span>
+              <SlotPicker value={slotsByType[dt]} onChange={v=>setSlotsByType(s=>({...s,[dt]:v}))} label={rl1(roleLabel)}/>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+    <div className="form-group">
+      <label className="form-label">Deelnemende {rlN(roleLabel)}</label>
+      <p style={{fontSize:11,color:'var(--muted)',marginBottom:8}}>Leeg = alle {rlN(roleLabel)}</p>
+      <div style={{display:'flex',flexWrap:'wrap',gap:6}}>
+        <button className="btn btn-ghost btn-sm" onClick={()=>setEligibleDocs(doctors.map(d=>d.id))}>Alle</button>
+        <button className="btn btn-ghost btn-sm" onClick={()=>setEligibleDocs([])}>Geen</button>
+        {doctors.map(doc=>{
+          const on=eligibleDocs.includes(doc.id);
+          return <div key={doc.id} className={`doc-toggle${on?' on':''}`} style={{color:on?doc.color:'var(--muted)'}} onClick={()=>setEligibleDocs(e=>e.includes(doc.id)?e.filter(x=>x!==doc.id):[...e,doc.id])}>
+            <Avatar doc={doc} size={18}/>{doc.name.split(' ').slice(1).join(' ')}{on&&<span style={{fontSize:10}}>✓</span>}
+          </div>;
+        })}
+      </div>
+    </div>
+    {start&&end&&start>end&&<div className="alert alert-danger">Startdatum moet vóór einddatum liggen.</div>}
+    <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:8}}>
+      <button className="btn btn-outline" onClick={onClose}>Annuleer</button>
+      <button className="btn btn-success" onClick={save} disabled={!name.trim()||!start||!end||start>end}>{period?'✓ Opslaan':'+ Aanmaken'}</button>
+    </div>
+  </>;
+}
+
+// ─── PREFERENCES PAGE ─────────────────────────────────────────────────────────
+function MiniMonthGrid({year,monthIdx,docId,preferences,setPreferences,customH={}}){
+  const days=getDaysInMonth(year,monthIdx);
+  return (
+    <div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:1,marginBottom:2}}>
+        {WEEKDAYS.map((d,i)=><div key={d} style={{textAlign:'center',fontSize:8,color:i===0||i===6?'var(--warn)':'var(--muted)',fontWeight:700}}>{d}</div>)}
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:1}}>
+        {days.map(({date,current})=>{
+          if(!current) return <div key={date} style={{height:22,borderRadius:3}}></div>;
+          const pref=(preferences[date]||{})[docId];
+          const wk=isWeekend(date); const hl=isHoliday(date,customH);
+          let bg=wk?'rgba(245,158,11,0.1)':'var(--surface2)'; let color='var(--muted)'; let border='1px solid transparent';
+          if(hl){ bg='rgba(239,68,68,0.1)'; }
+          if(pref==='positive'){ bg='rgba(16,185,129,0.25)'; color='var(--positive)'; border='1px solid rgba(16,185,129,0.5)'; }
+          if(pref==='negative'){ bg='rgba(239,68,68,0.25)'; color='var(--negative)'; border='1px solid rgba(239,68,68,0.5)'; }
+          return <div key={date} onClick={()=>{
+              const cur=(preferences[date]||{})[docId];
+              const next=cur==='positive'?'negative':cur==='negative'?undefined:'positive';
+              setPreferences(p=>({...p,[date]:{...(p[date]||{}),[docId]:next}}));
+            }} title={`${date}${hl?' ('+getHolidayName(date,customH)+')':''}`}
+            style={{height:22,borderRadius:3,display:'flex',alignItems:'center',justifyContent:'center',
+              cursor:'pointer',background:bg,color,border,fontSize:9,fontWeight:700,transition:'all 0.1s',userSelect:'none'}}>
+            {pref==='positive'?'✓':pref==='negative'?'✕':<span style={{fontSize:8,opacity:0.45,fontWeight:400}}>{new Date(date+'T00:00:00').getDate()}</span>}
+          </div>;
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PreferencesPage({doctors,preferences,setPreferences,currentUser,customH}){
+  const today=new Date();
+  const isAdmin=currentUser.role==='admin';
+  const visibleDoctors=isAdmin?doctors:doctors.filter(d=>d.id===currentUser.id);
+  const [prefYear,setPrefYear]=useState(today.getFullYear());
+  const [activeDoc,setActiveDoc]=useState(visibleDoctors[0]?.id||null);
+  const selectedDoc=visibleDoctors.find(d=>d.id===activeDoc)||visibleDoctors[0];
+  useEffect(()=>{if(!activeDoc&&visibleDoctors.length) setActiveDoc(visibleDoctors[0].id);},[visibleDoctors]);
+  function countY(docId,yr){ let pos=0,neg=0; Object.entries(preferences).forEach(([d,ps])=>{if(new Date(d+'T00:00:00').getFullYear()===yr&&ps[docId]){if(ps[docId]==='positive') pos++; else neg++;}}); return {pos,neg}; }
+  function countM(docId,yr,mo){ let pos=0,neg=0; Object.entries(preferences).forEach(([d,ps])=>{const dt=new Date(d+'T00:00:00');if(dt.getFullYear()===yr&&dt.getMonth()===mo&&ps[docId]){if(ps[docId]==='positive') pos++; else neg++;}}); return {pos,neg}; }
+  function clearYear(docId){ setPreferences(p=>{const np={...p}; Object.keys(np).forEach(d=>{if(new Date(d+'T00:00:00').getFullYear()===prefYear&&np[d]?.[docId]){np[d]={...np[d]};delete np[d][docId];}}); return np;}); }
+  return (
+    <div className="fade-in">
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
+        <div>
+          <h2 style={{fontSize:26,marginBottom:4}}>Voorkeuren</h2>
+          <p style={{color:'var(--muted)',fontSize:13}}>Klik: geen → <span style={{color:'var(--positive)'}}>✓</span> positief → <span style={{color:'var(--negative)'}}>✕</span> negatief → geen</p>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:8}}>
+          <button className="btn btn-outline btn-icon" onClick={()=>setPrefYear(y=>y-1)}>‹</button>
+          <span style={{fontFamily:"'DM Serif Display',serif",fontSize:22,minWidth:60,textAlign:'center'}}>{prefYear}</span>
+          <button className="btn btn-outline btn-icon" onClick={()=>setPrefYear(y=>y+1)}>›</button>
+        </div>
+      </div>
+      {isAdmin&&visibleDoctors.length>1&&(
+        <div style={{display:'flex',gap:6,flexWrap:'wrap',marginBottom:20,marginTop:12}}>
+          {visibleDoctors.map(doc=>{
+            const {pos,neg}=countY(doc.id,prefYear); const isActive=activeDoc===doc.id;
+            return <div key={doc.id} onClick={()=>setActiveDoc(doc.id)}
+              style={{display:'flex',alignItems:'center',gap:8,padding:'8px 14px',borderRadius:10,cursor:'pointer',
+                border:`2px solid ${isActive?doc.color:'var(--border)'}`,background:isActive?doc.color+'18':'var(--surface)',transition:'all 0.15s'}}>
+              <Avatar doc={doc} size={26}/>
+              <div>
+                <div style={{fontSize:13,fontWeight:600,color:isActive?doc.color:'var(--text)'}}>{doc.name.split(' ').slice(1).join(' ')}</div>
+                <div style={{fontSize:10,color:'var(--muted)',marginTop:1}}>
+                  {pos>0&&<span style={{color:'var(--positive)',marginRight:6}}>✓{pos}</span>}
+                  {neg>0&&<span style={{color:'var(--negative)'}}>✕{neg}</span>}
+                  {pos===0&&neg===0&&'Geen'}
+                </div>
+              </div>
+            </div>;
+          })}
+        </div>
+      )}
+      {selectedDoc&&(
+        <div>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:16,padding:'14px 20px',borderRadius:12,background:'var(--surface)',border:'1px solid var(--border)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:12}}>
+              <Avatar doc={selectedDoc} size={38}/>
+              <div>
+                <div style={{fontWeight:700,fontSize:15}}>{selectedDoc.name}</div>
+                <div style={{fontSize:12,color:'var(--muted)',marginTop:2}}>
+                  {(()=>{ const {pos,neg}=countY(selectedDoc.id,prefYear);
+                    return <>{pos>0&&<span style={{color:'var(--positive)',marginRight:10}}>✓ {pos} positief</span>}{neg>0&&<span style={{color:'var(--negative)'}}>✕ {neg} negatief</span>}{pos===0&&neg===0&&'Geen voorkeuren'}</>; })()}
+                </div>
+              </div>
+            </div>
+            <button className="btn btn-outline btn-sm" onClick={()=>{if(window.confirm(`Alle voorkeuren voor ${prefYear} wissen?`)) clearYear(selectedDoc.id);}}>🗑 Jaar wissen</button>
+          </div>
+          <div className="legend" style={{marginBottom:16}}>
+            <div className="legend-item"><div style={{width:14,height:14,borderRadius:3,background:'rgba(16,185,129,0.25)',border:'1px solid rgba(16,185,129,0.5)'}}></div>Positief</div>
+            <div className="legend-item"><div style={{width:14,height:14,borderRadius:3,background:'rgba(239,68,68,0.25)',border:'1px solid rgba(239,68,68,0.5)'}}></div>Negatief</div>
+            <div className="legend-item"><div style={{width:14,height:14,borderRadius:3,background:'rgba(245,158,11,0.1)'}}></div>Weekend</div>
+            <div className="legend-item"><div style={{width:14,height:14,borderRadius:3,background:'rgba(239,68,68,0.1)'}}></div>Feestdag</div>
+          </div>
+          <div className="months-yr-grid" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
+            {Array.from({length:12},(_,mo)=>{
+              const {pos,neg}=countM(selectedDoc.id,prefYear,mo);
+              return <div key={mo} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:12,padding:14}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                  <span style={{fontFamily:"'DM Serif Display',serif",fontSize:13}}>{MONTHS[mo]}</span>
+                  <div style={{display:'flex',gap:4}}>{pos>0&&<span style={{fontSize:10,color:'var(--positive)',fontWeight:700}}>✓{pos}</span>}{neg>0&&<span style={{fontSize:10,color:'var(--negative)',fontWeight:700}}>✕{neg}</span>}</div>
+                </div>
+                <MiniMonthGrid year={prefYear} monthIdx={mo} docId={selectedDoc.id} preferences={preferences} setPreferences={setPreferences} customH={customH}/>
+              </div>;
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── USER MANAGEMENT PAGE ─────────────────────────────────────────────────────
+function UserManagementPage({users,setUsers,currentUser,setCurrentUser,roleLabel}){
+  const [modal,setModal]=useState(null);
+  const [editUser,setEditUser]=useState(null);
+  const [form,setForm]=useState({name:'',username:'',password:'',role:'doctor',color:COLORS[1],initials:''});
+  const [formErr,setFormErr]=useState('');
+  const [changePwModal,setChangePwModal]=useState(null);
+  const [newPw,setNewPw]=useState('');
+  const [showPw,setShowPw]=useState(false);
+  function openAdd(){ setForm({name:'',username:'',password:'',role:'doctor',color:COLORS[1],initials:''}); setFormErr(''); setEditUser(null); setModal('user'); }
+  function openEdit(u){ setForm({name:u.name,username:u.username,password:'',role:u.role,color:u.color,initials:u.initials}); setFormErr(''); setEditUser(u); setModal('user'); }
+  function saveUser(){
+    if(!form.name.trim()||!form.username.trim()) return setFormErr('Naam en gebruikersnaam zijn verplicht.');
+    if(!editUser&&!form.password.trim()) return setFormErr('Wachtwoord is verplicht voor nieuwe gebruikers.');
+    const dup=users.find(u=>u.username===form.username.trim()&&u.id!==editUser?.id);
+    if(dup) return setFormErr('Gebruikersnaam is al in gebruik.');
+    const initials=form.initials.trim()||form.name.trim().split(/\s+/).map(w=>w[0]).join('').slice(0,2).toUpperCase();
+    if(editUser){
+      const updated={...editUser,name:form.name.trim(),username:form.username.trim(),role:form.role,color:form.color,initials,...(form.password.trim()?{passHash:hashPass(form.password)}:{})};
+      setUsers(us=>us.map(u=>u.id===editUser.id?updated:u));
+      if(currentUser.id===editUser.id) setCurrentUser(updated);
+    } else {
+      const id=Math.max(0,...users.map(u=>u.id))+1;
+      setUsers(us=>[...us,{id,name:form.name.trim(),username:form.username.trim(),passHash:hashPass(form.password),role:form.role,color:form.color,initials,active:true}]);
+    }
+    setModal(null);
+  }
+  function toggleActive(u){ if(u.id===currentUser.id) return; setUsers(us=>us.map(x=>x.id===u.id?{...x,active:!x.active}:x)); }
+  function deleteUser(u){ if(u.id===currentUser.id) return; if(!window.confirm(`${u.name} verwijderen?`)) return; setUsers(us=>us.filter(x=>x.id!==u.id)); }
+  function applyChangePw(){ if(!newPw.trim()||newPw.length<4) return; const updated={...changePwModal,passHash:hashPass(newPw)}; setUsers(us=>us.map(u=>u.id===changePwModal.id?updated:u)); if(currentUser.id===changePwModal.id) setCurrentUser(updated); setChangePwModal(null); setNewPw(''); }
+  const adminCount=users.filter(u=>u.role==='admin'&&u.active).length;
+  return (
+    <div className="fade-in">
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
+        <div><h2 style={{fontSize:26,marginBottom:4}}>Gebruikersbeheer</h2><p style={{color:'var(--muted)',fontSize:13}}>{users.length} gebruikers · {users.filter(u=>u.role==='admin').length} admin(s) · {users.filter(u=>u.role==='doctor').length} {rl1(roleLabel)+`${users.filter(u=>u.role==='doctor').length!==1?'s':''}`}</p></div>
+        <button className="btn btn-primary" onClick={openAdd}>+ Gebruiker toevoegen</button>
+      </div>
+      <div className="card">
+        <table className="user-table">
+          <thead><tr><th>Gebruiker</th><th>Gebruikersnaam</th><th>Rol</th><th>Status</th><th>Acties</th></tr></thead>
+          <tbody>
+            {users.map(u=>(
+              <tr key={u.id}>
+                <td><div style={{display:'flex',alignItems:'center',gap:10}}><Avatar doc={u} size={34}/><div><div style={{fontWeight:600}}>{u.name}</div>{u.id===currentUser.id&&<span style={{fontSize:10,color:'var(--muted)'}}>← jij</span>}</div></div></td>
+                <td style={{color:'var(--muted)',fontFamily:'monospace',fontSize:13}}>{u.username}</td>
+                <td><span className={`role-badge ${u.role==='admin'?'badge-admin':'badge-doctor'}`}>{u.role==='admin'?'👑 Admin':`${rlIcon(roleLabel)} ${rl1U(roleLabel)}`}</span></td>
+                <td><span><span className="status-dot" style={{background:u.active?'var(--positive)':'var(--muted)'}}></span>{u.active?'Actief':'Inactief'}</span></td>
+                <td><div style={{display:'flex',gap:6,flexWrap:'wrap'}}>
+                  <button className="btn btn-outline btn-sm" onClick={()=>openEdit(u)}>✏ Bewerk</button>
+                  <button className="btn btn-outline btn-sm" onClick={()=>{setChangePwModal(u);setNewPw('');setShowPw(false);}}>🔑</button>
+                  {u.id!==currentUser.id&&(<>
+                    <button className={`btn btn-sm ${u.active?'btn-warn':'btn-outline'}`} onClick={()=>toggleActive(u)}>{u.active?'Deactiveer':'Activeer'}</button>
+                    {!(u.role==='admin'&&adminCount<=1)&&<button className="btn btn-danger btn-sm" onClick={()=>deleteUser(u)}>🗑</button>}
+                  </>)}
+                </div></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {modal==='user'&&(
+        <ModalWrap title={editUser?'Gebruiker bewerken':'Gebruiker toevoegen'} onClose={()=>setModal(null)}>
+          {formErr&&<div className="login-error">{formErr}</div>}
+          <div className="form-row"><div className="form-group" style={{marginBottom:0}}><label className="form-label">Volledige naam</label><input className="form-input" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))} placeholder="Dr. Naam"/></div>
+          <div className="form-group" style={{marginBottom:0}}><label className="form-label">Initialen</label><input className="form-input" maxLength={3} value={form.initials} onChange={e=>setForm(f=>({...f,initials:e.target.value.toUpperCase()}))} placeholder="DR"/></div></div>
+          <div style={{marginBottom:16}}></div>
+          <div className="form-row"><div className="form-group" style={{marginBottom:0}}><label className="form-label">Gebruikersnaam</label><input className="form-input" value={form.username} onChange={e=>setForm(f=>({...f,username:e.target.value}))} placeholder="gebruikersnaam"/></div>
+          <div className="form-group" style={{marginBottom:0}}><label className="form-label">{editUser?'Nieuw wachtwoord (leeg=ongewijzigd)':'Wachtwoord'}</label><div className="pass-wrap"><input className="form-input" type={showPw?'text':'password'} value={form.password} onChange={e=>setForm(f=>({...f,password:e.target.value}))} placeholder={editUser?'(ongewijzigd)':'••••••••'}/><button className="pass-toggle" onClick={()=>setShowPw(v=>!v)}>{showPw?'🙈':'👁'}</button></div></div></div>
+          <div style={{marginBottom:16}}></div>
+          <div className="form-row"><div className="form-group" style={{marginBottom:0}}><label className="form-label">Rol</label><select className="form-input" value={form.role} onChange={e=>setForm(f=>({...f,role:e.target.value}))}><option value="doctor">{rlIcon(roleLabel)} {rl1U(roleLabel)}</option><option value="admin">👑 Admin</option></select></div>
+          <div className="form-group" style={{marginBottom:0}}><label className="form-label">Kleur</label><div className="color-swatches" style={{marginTop:6}}>{COLORS.map(c=><div key={c} className={`color-swatch${form.color===c?' selected':''}`} style={{background:c}} onClick={()=>setForm(f=>({...f,color:c}))}/>)}</div></div></div>
+          {form.role==='admin'&&<div className="alert alert-warn" style={{marginTop:16}}>Admins hebben volledige toegang.</div>}
+          <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:20}}><button className="btn btn-outline" onClick={()=>setModal(null)}>Annuleer</button><button className="btn btn-success" onClick={saveUser}>{editUser?'✓ Opslaan':'+ Aanmaken'}</button></div>
+        </ModalWrap>
+      )}
+      {changePwModal&&(
+        <ModalWrap title={`Wachtwoord wijzigen — ${changePwModal.name}`} onClose={()=>setChangePwModal(null)}>
+          <div className="form-group"><label className="form-label">Nieuw wachtwoord</label><div className="pass-wrap"><input className="form-input" type={showPw?'text':'password'} value={newPw} onChange={e=>setNewPw(e.target.value)} onKeyDown={e=>e.key==='Enter'&&applyChangePw()} autoFocus/><button className="pass-toggle" onClick={()=>setShowPw(v=>!v)}>{showPw?'🙈':'👁'}</button></div>{newPw.length>0&&newPw.length<4&&<p style={{fontSize:11,color:'var(--danger)',marginTop:4}}>Min. 4 tekens</p>}</div>
+          <div style={{display:'flex',gap:8,justifyContent:'flex-end'}}><button className="btn btn-outline" onClick={()=>setChangePwModal(null)}>Annuleer</button><button className="btn btn-success" onClick={applyChangePw} disabled={newPw.length<4}>✓ Opslaan</button></div>
+        </ModalWrap>
+      )}
+    </div>
+  );
+}
+
+// ─── HOLIDAYS MANAGEMENT PAGE ─────────────────────────────────────────────────
+function HolidaysPage({customHolidays, setCustomHolidays}) {
+  const [newDate, setNewDate] = useState('');
+  const [newName, setNewName] = useState('');
+  function addHoliday(){
+    if(!newDate||!newName.trim()) return;
+    setCustomHolidays(h=>({...h,[newDate]:newName.trim()}));
+    setNewDate(''); setNewName('');
+  }
+  function removeHoliday(date){ setCustomHolidays(h=>{const n={...h};delete n[date];return n;}); }
+  
+  const allHolidays = {...BE_HOLIDAYS,...customHolidays};
+  const sorted = Object.entries(allHolidays).sort((a,b)=>a[0].localeCompare(b[0]));
+  
+  return (
+    <div className="fade-in">
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
+        <div><h2 style={{fontSize:26,marginBottom:4}}>Feestdagen</h2><p style={{color:'var(--muted)',fontSize:13}}>Belgische feestdagen + aangepaste feestdagen</p></div>
+      </div>
+      <div className="alert alert-info" style={{marginBottom:20}}>📅 Feestdagen worden in rood gemarkeerd op de kalender en tellen apart mee in de verdeling.</div>
+      <div className="card" style={{marginBottom:20}}>
+        <div className="card-header"><h3 className="card-title">Aangepaste feestdag toevoegen</h3></div>
+        <div style={{display:'flex',gap:12,alignItems:'flex-end',flexWrap:'wrap'}}>
+          <div className="form-group" style={{marginBottom:0,flex:'0 0 160px'}}><label className="form-label">Datum</label><input type="date" className="form-input" value={newDate} onChange={e=>setNewDate(e.target.value)}/></div>
+          <div className="form-group" style={{marginBottom:0,flex:'1 1 200px'}}><label className="form-label">Naam</label><input className="form-input" placeholder="bv. Brugse markt" value={newName} onChange={e=>setNewName(e.target.value)} onKeyDown={e=>e.key==='Enter'&&addHoliday()}/></div>
+          <button className="btn btn-primary" onClick={addHoliday} disabled={!newDate||!newName.trim()}>+ Toevoegen</button>
+        </div>
+      </div>
+      <div className="card">
+        <div className="card-header"><h3 className="card-title">Alle feestdagen ({sorted.length})</h3></div>
+        <div style={{maxHeight:420,overflowY:'auto'}}>
+          {sorted.map(([date,name])=>{
+            const isCustom=!!customHolidays[date];
+            return <div key={date} style={{display:'flex',alignItems:'center',gap:12,padding:'10px 0',borderBottom:'1px solid var(--border)'}}>
+              <span style={{color:'var(--danger)',fontSize:16}}>🔴</span>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:600,fontSize:13}}>{name}</div>
+                <div style={{fontSize:11,color:'var(--muted)'}}>{fmtLong(date)} · {isWeekend(date)?'Weekend':'Weekdag'}</div>
+              </div>
+              {isCustom?<span className="chip chip-warn">Aangepast</span>:<span className="chip chip-accent">Belgisch</span>}
+              {isCustom&&<button className="btn btn-danger btn-sm" onClick={()=>removeHoliday(date)}>🗑</button>}
+            </div>;
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── LOCK RANGES PAGE ─────────────────────────────────────────────────────────
+function LocksPage({lockedRanges, setLockedRanges}) {
+  const [newStart, setNewStart] = useState('');
+  const [newEnd, setNewEnd] = useState('');
+  const [newLabel, setNewLabel] = useState('');
+  function addLock(){
+    if(!newStart||!newEnd||newStart>newEnd) return;
+    setLockedRanges(r=>[...r,{id:Date.now(),start:newStart,end:newEnd,label:newLabel.trim()||'Vergrendeld'}]);
+    setNewStart(''); setNewEnd(''); setNewLabel('');
+  }
+  function removeLock(id){ setLockedRanges(r=>r.filter(x=>x.id!==id)); }
+  return (
+    <div className="fade-in">
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
+        <div><h2 style={{fontSize:26,marginBottom:4}}>Vergrendelde periodes</h2><p style={{color:'var(--muted)',fontSize:13}}>Vergrendelde periodes kunnen niet meer bewerkt worden</p></div>
+      </div>
+      <div className="alert alert-info" style={{marginBottom:20}}>🔒 Vergrendelde dagen worden afgesloten voor wijzigingen. Ze blijven wel zichtbaar op de kalender.</div>
+      <div className="card" style={{marginBottom:20}}>
+        <div className="card-header"><h3 className="card-title">Nieuwe vergrendeling</h3></div>
+        <div style={{display:'flex',gap:12,alignItems:'flex-end',flexWrap:'wrap'}}>
+          <div className="form-group" style={{marginBottom:0,flex:'0 0 145px'}}><label className="form-label">Van</label><input type="date" className="form-input" value={newStart} onChange={e=>setNewStart(e.target.value)}/></div>
+          <div className="form-group" style={{marginBottom:0,flex:'0 0 145px'}}><label className="form-label">Tot</label><input type="date" className="form-input" value={newEnd} onChange={e=>setNewEnd(e.target.value)}/></div>
+          <div className="form-group" style={{marginBottom:0,flex:'1 1 160px'}}><label className="form-label">Label (optioneel)</label><input className="form-input" placeholder="bv. Definitief" value={newLabel} onChange={e=>setNewLabel(e.target.value)}/></div>
+          <button className="btn btn-primary" onClick={addLock} disabled={!newStart||!newEnd||newStart>newEnd}>🔒 Vergrendelen</button>
+        </div>
+        {newStart&&newEnd&&newStart>newEnd&&<p style={{color:'var(--danger)',fontSize:12,marginTop:8}}>Startdatum moet vóór einddatum liggen.</p>}
+      </div>
+      {lockedRanges.length===0?(
+        <div className="empty-state"><div className="empty-icon">🔓</div><div className="empty-title">Geen vergrendelingen</div><p style={{fontSize:13}}>Voeg een vergrendeling toe om een periode af te sluiten voor wijzigingen.</p></div>
+      ):(
+        <div className="card">
+          {[...lockedRanges].sort((a,b)=>a.start.localeCompare(b.start)).map(lr=>{
+            const days = Math.round((new Date(lr.end)-new Date(lr.start))/86400000)+1;
+            return <div key={lr.id} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 0',borderBottom:'1px solid var(--border)'}}>
+              <span style={{fontSize:20}}>🔒</span>
+              <div style={{flex:1}}>
+                <div style={{fontWeight:600,fontSize:13}}>{lr.label}</div>
+                <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>{fmtLong(lr.start)} → {fmtLong(lr.end)} · {days} dag{days!==1?'en':''}</div>
+              </div>
+              <button className="btn btn-danger btn-sm" onClick={()=>removeLock(lr.id)}>🗑 Verwijder</button>
+            </div>;
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── CARRY OVER PAGE ─────────────────────────────────────────────────────────
+function CarryOverPage({doctors, carryOver, setCarryOver, stats, roleLabel={}}) {
+  function updateCarry(docId, field, value){
+    setCarryOver(co=>({...co,[docId]:{...(co[docId]||{total:0,weekday:0,weekend:0,holiday:0}),[field]:parseInt(value)||0}}));
+  }
+  function resetAll(){ setCarryOver({}); }
+  return (
+    <div className="fade-in">
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
+        <div><h2 style={{fontSize:26,marginBottom:4}}>Overdracht vorige periode</h2><p style={{color:'var(--muted)',fontSize:13}}>Neem aantallen mee van een vorige planning voor evenredige verdeling</p></div>
+        <button className="btn btn-outline" onClick={resetAll}>Reset alles</button>
+      </div>
+      <div className="alert alert-info" style={{marginBottom:20}}>📊 Vul hier de wachttellingen in van de vorige planningsperiode. Deze worden meegenomen bij de automatische inplanning voor een eerlijke spreiding over periodes heen.</div>
+      <div className="card">
+        <table className="dist-table">
+          <thead><tr><th>{rl1U(roleLabel)}</th><th>Overdracht totaal</th><th>Weekdagen</th><th>Weekends</th><th>Feestdagen</th><th>Huidig totaal</th></tr></thead>
+          <tbody>
+            {doctors.map(doc=>{
+              const co=carryOver[doc.id]||{total:0,weekday:0,weekend:0,holiday:0};
+              const cur=stats[doc.id]||{total:0,weekday:0,weekend:0,holiday:0};
+              return <tr key={doc.id}>
+                <td><div style={{display:'flex',alignItems:'center',gap:8}}><Avatar doc={doc} size={26}/>{doc.name}</div></td>
+                {(['total','weekday','weekend','holiday']).map(f=>(
+                  <td key={f}><input type="number" min="0" style={{width:60,background:'var(--surface2)',border:'1px solid var(--border)',borderRadius:6,color:'var(--text)',padding:'4px 8px',fontSize:12}} value={co[f]||0} onChange={e=>updateCarry(doc.id,f,e.target.value)}/></td>
+                ))}
+                <td><span style={{fontWeight:700,color:doc.color}}>{cur.total}</span><span style={{fontSize:11,color:'var(--muted)',marginLeft:6}}>(+{co.total||0} = {cur.total+(co.total||0)})</span></td>
+              </tr>;
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── SETTINGS PAGE ───────────────────────────────────────────────────────────
+const PRESET_ROLES = [
+  { singular:'arts', plural:'artsen', icon:'👨‍⚕️', planningTitle:'Wachtplanning' },
+  { singular:'verpleger', plural:'verplegers', icon:'🩺', planningTitle:'Wachtplanning' },
+  { singular:'verpleegster', plural:'verpleegsters', icon:'🩺', planningTitle:'Wachtplanning' },
+  { singular:'medewerker', plural:'medewerkers', icon:'👤', planningTitle:'Wachtplanning' },
+  { singular:'stagiair', plural:'stagiairs', icon:'🎓', planningTitle:'Stageplanning' },
+  { singular:'vrijwilliger', plural:'vrijwilligers', icon:'🤝', planningTitle:'Dienstplanning' },
+  { singular:'technicus', plural:'technici', icon:'🔧', planningTitle:'Wachtplanning' },
+  { singular:'bewaker', plural:'bewakers', icon:'🛡', planningTitle:'Wachtplanning' },
+];
+
+function SettingsPage({ roleLabel, setRoleLabel }) {
+  const [singular, setSingular] = useState(roleLabel.singular||'arts');
+  const [plural, setPlural] = useState(roleLabel.plural||'artsen');
+  const [icon, setIcon] = useState(roleLabel.icon||'👨‍⚕️');
+  const [planningTitle, setPlanningTitle] = useState(roleLabel.planningTitle||'Wachtplanning');
+  const [saved, setSaved] = useState(false);
+
+  function save(){
+    setRoleLabel({ singular: singular.trim()||'arts', plural: plural.trim()||'artsen', icon: icon.trim()||'👨‍⚕️', planningTitle: planningTitle.trim()||'Wachtplanning' });
+    setSaved(true); setTimeout(()=>setSaved(false), 2000);
+  }
+  function applyPreset(p){ setSingular(p.singular); setPlural(p.plural); setIcon(p.icon); setPlanningTitle(p.planningTitle); }
+
+  const ICON_OPTIONS = ['👨‍⚕️','🩺','🏥','👤','🧑‍⚕️','👩‍⚕️','🤝','🎓','🔧','⚕️','💊','🩻','🚑','🛡','⭐','👷'];
+
+  return (
+    <div className="fade-in">
+      <div style={{marginBottom:24}}>
+        <h2 style={{fontSize:26,marginBottom:4}}>Instellingen</h2>
+        <p style={{color:'var(--muted)',fontSize:13}}>Pas de benaming van de rol aan voor uw organisatie</p>
+      </div>
+      <div className="card" style={{marginBottom:20}}>
+        <div className="card-header"><h3 className="card-title">Snelle presets</h3></div>
+        <div style={{display:'flex',gap:8,flexWrap:'wrap'}}>
+          {PRESET_ROLES.map(p=>(
+            <button key={p.singular} className={`btn btn-outline`} style={{fontSize:12,borderColor:singular===p.singular?'var(--accent)':'var(--border)',color:singular===p.singular?'var(--accent)':'var(--text)'}} onClick={()=>applyPreset(p)}>
+              {p.icon} {p.singular[0].toUpperCase()+p.singular.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div className="card" style={{marginBottom:20}}>
+        <div className="card-header"><h3 className="card-title">Aangepaste benaming</h3></div>
+        <div className="form-row" style={{marginBottom:16}}>
+          <div className="form-group" style={{marginBottom:0}}>
+            <label className="form-label">Enkelvoud</label>
+            <input className="form-input" value={singular} onChange={e=>setSingular(e.target.value)} placeholder="arts"/>
+            <p style={{fontSize:11,color:'var(--muted)',marginTop:4}}>bv. "arts", "verpleger", "medewerker"</p>
+          </div>
+          <div className="form-group" style={{marginBottom:0}}>
+            <label className="form-label">Meervoud</label>
+            <input className="form-input" value={plural} onChange={e=>setPlural(e.target.value)} placeholder="artsen"/>
+            <p style={{fontSize:11,color:'var(--muted)',marginTop:4}}>bv. "artsen", "verplegers", "medewerkers"</p>
+          </div>
+        </div>
+        <div className="form-row">
+          <div className="form-group" style={{marginBottom:0}}>
+            <label className="form-label">Icoon</label>
+            <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:4}}>
+              {ICON_OPTIONS.map(ic=>(
+                <button key={ic} onClick={()=>setIcon(ic)}
+                  style={{width:36,height:36,borderRadius:8,border:`2px solid ${icon===ic?'var(--accent)':'var(--border)'}`,
+                    background:icon===ic?'rgba(59,130,246,0.15)':'var(--surface2)',fontSize:18,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>
+                  {ic}
+                </button>
+              ))}
+              <input className="form-input" style={{width:70,fontSize:18,textAlign:'center',padding:'4px'}} value={icon} onChange={e=>setIcon(e.target.value)} title="Of typ een eigen emoji"/>
+            </div>
+          </div>
+          <div className="form-group" style={{marginBottom:0}}>
+            <label className="form-label">Naam van de planning</label>
+            <input className="form-input" value={planningTitle} onChange={e=>setPlanningTitle(e.target.value)} placeholder="Wachtplanning"/>
+            <p style={{fontSize:11,color:'var(--muted)',marginTop:4}}>Verschijnt in titelbalk en PDF</p>
+          </div>
+        </div>
+      </div>
+      <div className="card" style={{marginBottom:20}}>
+        <div className="card-header"><h3 className="card-title">Voorbeeld</h3></div>
+        <div style={{display:'flex',gap:16,flexWrap:'wrap',alignItems:'center',padding:'8px 0'}}>
+          <span style={{fontSize:13}}>Logo: <strong style={{color:'var(--accent)'}}>MedWatch</strong> <span style={{color:'var(--muted)',fontSize:11}}>{icon} {planningTitle}</span></span>
+          <span style={{fontSize:13}}>Menu: <strong>{icon} {plural[0]?.toUpperCase()+plural.slice(1)}</strong></span>
+          <span style={{fontSize:13}}>Kalender: <strong style={{color:'var(--accent)'}}>+ {singular}</strong></span>
+          <span style={{fontSize:13}}>Slot-label: <strong>{plural} per dag</strong></span>
+          <div style={{padding:'2px 10px',borderRadius:20,background:'rgba(16,185,129,0.2)',color:'var(--positive)',fontSize:11,fontWeight:600}}>{icon} {singular[0]?.toUpperCase()+singular.slice(1)}</div>
+          <div style={{padding:'2px 10px',borderRadius:20,background:'rgba(59,130,246,0.2)',color:'var(--accent)',fontSize:11,fontWeight:600}}>👑 Admin</div>
+        </div>
+      </div>
+      <div style={{display:'flex',gap:8,alignItems:'center'}}>
+        <button className="btn btn-success" onClick={save}>✓ Opslaan</button>
+        {saved&&<span style={{color:'var(--positive)',fontSize:13,fontWeight:600,animation:'fadeIn 0.2s ease'}}>✓ Opgeslagen!</span>}
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN APP ─────────────────────────────────────────────────────────────────
+function App(){
+  const today=new Date();
+  const [store,setStore]=useState(()=>initStore());
+  const [currentUser,setCurrentUser]=useState(null);
+
+  const users=store.users||[];
+  const schedule=store.schedule||{};
+  const preferences=store.preferences||{};
+  const periods=store.periods||[];
+  const adminEdits=store.adminEdits||{};
+  const lockedRanges=store.lockedRanges||[];
+  const customHolidays=store.customHolidays||{};
+  const carryOver=store.carryOver||{};
+  const roleLabel=store.roleLabel||{ singular:'arts', plural:'artsen', icon:'👨‍⚕️', planningTitle:'Wachtplanning' };
+
+  function setUsers(fn){ setStore(s=>{const ns={...s,users:typeof fn==='function'?fn(s.users):fn};saveStore(ns);return ns;}); }
+  function setSchedule(fn){ setStore(s=>{const ns={...s,schedule:typeof fn==='function'?fn(s.schedule):fn};saveStore(ns);return ns;}); }
+  function setPreferences(fn){ setStore(s=>{const ns={...s,preferences:typeof fn==='function'?fn(s.preferences):fn};saveStore(ns);return ns;}); }
+  function setPeriods(fn){ setStore(s=>{const ns={...s,periods:typeof fn==='function'?fn(s.periods):fn};saveStore(ns);return ns;}); }
+  function setAdminEdits(fn){ setStore(s=>{const ns={...s,adminEdits:typeof fn==='function'?fn(s.adminEdits):fn};saveStore(ns);return ns;}); }
+  function setLockedRanges(fn){ setStore(s=>{const ns={...s,lockedRanges:typeof fn==='function'?fn(s.lockedRanges):fn};saveStore(ns);return ns;}); }
+  function setCustomHolidays(fn){ setStore(s=>{const ns={...s,customHolidays:typeof fn==='function'?fn(s.customHolidays):fn};saveStore(ns);return ns;}); }
+  function setCarryOver(fn){ setStore(s=>{const ns={...s,carryOver:typeof fn==='function'?fn(s.carryOver):fn};saveStore(ns);return ns;}); }
+  function setRoleLabel(fn){ setStore(s=>{const ns={...s,roleLabel:typeof fn==='function'?fn(s.roleLabel):fn};saveStore(ns);return ns;}); }
+
+  // Convenience shorthands for roleLabel
+  const RL = roleLabel;
+  const singular = rl1(RL);   // "arts"
+  const plural   = rlN(RL);   // "artsen"
+  const SingU    = rl1U(RL);  // "Arts"
+  const PlurU    = rlNU(RL);  // "Artsen"
+  const RLIcon   = rlIcon(RL);// "👨‍⚕️"
+  const RLTitle  = rlTitle(RL);// "Wachtplanning"
+
+  useEffect(()=>{
+    if(currentUser){ const fresh=users.find(u=>u.id===currentUser.id);
+      if(fresh&&JSON.stringify(fresh)!==JSON.stringify(currentUser)) setCurrentUser(fresh); }
+  },[users]);
+
+  const [page,setPage]=useState('calendar');
+  const [year,setYear]=useState(today.getFullYear());
+  const [month,setMonth]=useState(today.getMonth());
+  const [modal,setModal]=useState(null);
+  const [planStart,setPlanStart]=useState('');
+  const [planEnd,setPlanEnd]=useState('');
+  const [planDocs,setPlanDocs]=useState([]);
+  const [suggestions,setSuggestions]=useState(null);
+  const [showProblems,setShowProblems]=useState(false);
+  const [pdfModal,setPdfModal]=useState(false);
+  const [pdfType,setPdfType]=useState('month');
+  const [pdfStart,setPdfStart]=useState('');
+  const [pdfEnd,setPdfEnd]=useState('');
+
+  const isAdmin=currentUser?.role==='admin';
+  const doctors=useMemo(()=>users.filter(u=>u.active),[users]);
+  const days=useMemo(()=>getDaysInMonth(year,month),[year,month]);
+  const currentDates=useMemo(()=>days.filter(d=>d.current).map(d=>d.date),[days]);
+  const stats=useMemo(()=>computeStats(schedule,doctors,customHolidays),[schedule,doctors,customHolidays]);
+  const maxTotal=useMemo(()=>Math.max(1,...Object.values(stats).map(s=>s.total)),[stats]);
+  const consecMap=useMemo(()=>{const m={};doctors.forEach(d=>{const n=maxConsecWeeks(schedule,d.id);if(n>1) m[d.id]=n;});return m;},[schedule,doctors]);
+  const equityScore=useMemo(()=>{const tot=doctors.map(d=>stats[d.id]?.total||0);const sum=tot.reduce((a,b)=>a+b,0);if(!sum) return 100;const avg=sum/doctors.length;const v=tot.reduce((s,t)=>s+Math.abs(t-avg),0)/doctors.length;return Math.max(0,Math.round(100-(v/avg)*50));},[stats,doctors]);
+  const scheduledDays=useMemo(()=>Object.values(schedule).filter(v=>v.length>0).length,[schedule]);
+  const openThisMonth=useMemo(()=>currentDates.filter(d=>!schedule[d]||!schedule[d].length).length,[currentDates,schedule]);
+  const eqColor=equityScore>80?'var(--positive)':equityScore>60?'var(--warn)':'var(--danger)';
+  const problems=useMemo(()=>detectProblems(schedule,doctors,periods,lockedRanges,customHolidays),[schedule,doctors,periods,lockedRanges,customHolidays]);
+  const adminEditCount=useMemo(()=>Object.keys(adminEdits).length,[adminEdits]);
+  
+  // Build rank map for display
+  const rankMap=useMemo(()=>buildRankMap(schedule,periods),[schedule,periods]);
+
+  if(!currentUser) return <LoginPage users={users} onLogin={u=>{setCurrentUser(u);setPage('calendar');}}/>;
+
+  function logout(){ setCurrentUser(null); setPage('calendar'); setSuggestions(null); }
+  function prevMonth(){ if(month===0){setMonth(11);setYear(y=>y-1);}else setMonth(m=>m-1); }
+  function nextMonth(){ if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1); }
+
+  function runAutoSchedule(){
+    if(!planStart||!planEnd) return;
+    const activeDocs=planDocs.length?doctors.filter(d=>planDocs.includes(d.id)):doctors;
+    const periodDoctors={};
+    for(let d=new Date(planStart+'T00:00:00');d<=new Date(planEnd+'T00:00:00');d.setDate(d.getDate()+1)){
+      const ds=fmt(d); const p=getPeriodForDate(ds,periods);
+      if(p?.eligibleDocs) periodDoctors[ds]=activeDocs.filter(doc=>p.eligibleDocs.includes(doc.id));
+    }
+    setSchedule(autoSchedule(planStart,planEnd,activeDocs,periodDoctors,preferences,schedule,periods,lockedRanges,carryOver,customHolidays));
+    setModal(null); setSuggestions(null);
+  }
+
+  function manualToggleDoc(date,docId){
+    if(isDateLocked(date,lockedRanges)) return;
+    const cur=(schedule[date]||[]); const isOn=cur.includes(docId);
+    const newSched={...schedule,[date]:isOn?cur.filter(id=>id!==docId):[...cur,docId]};
+    setSchedule(newSched);
+    // Mark as admin-edited
+    setAdminEdits(ae=>({...ae,[date]:true}));
+    if(!isOn&&scheduledDays>0){
+      const ns=computeStats(newSched,doctors,customHolidays);
+      const items=buildSuggestions(newSched,doctors,ns,date,docId,customHolidays);
+      if(items.length) setSuggestions({date,newDocId:docId,items}); else setSuggestions(null);
+    } else setSuggestions(null);
+  }
+
+  function savePeriod(p){ setPeriods(ps=>{const i=ps.findIndex(x=>x.id===p.id);if(i>=0){const cp=[...ps];cp[i]=p;return cp;} return [...ps,p];});setModal(null); }
+  function getSlots(date){ return getSlotsForDate(date,periods); }
+  
+  function getRankForDocOnDate(date, docId){
+    const period=getPeriodForDate(date,periods);
+    if(!period) return null;
+    const slots=getSlotsForDate(date,periods);
+    if(slots<=1) return null;
+    const assigned=schedule[date]||[];
+    const idx=assigned.indexOf(docId);
+    return idx>=0?idx:null;
+  }
+  
+  function cellEquityIssue(date){ const a=schedule[date]||[];if(!a.length) return false;const dt=getDayType(date,customHolidays);
+    return a.some(id=>{const mc=stats[id]?.[dt]||0;return doctors.some(o=>o.id!==id&&(mc-(stats[o.id]?.[dt]||0))>=3);}); }
+  
+  function cellClass(date,current){
+    const cls=['cal-cell'];
+    if(!current) cls.push('other-month');
+    else{
+      if(isHoliday(date,customHolidays)) cls.push('holiday');
+      else if(isWeekend(date)) cls.push('weekend');
+      if(date===fmt(today)) cls.push('today');
+      if(isDateLocked(date,lockedRanges)) cls.push('locked');
+      if(adminEdits[date]) cls.push('admin-modified');
+      else if(cellEquityIssue(date)) cls.push('has-equity');
+      else if((schedule[date]||[]).some(id=>consecMap[id])) cls.push('has-consec');
+    }
+    return cls.join(' ');
+  }
+
+  function runExportPDF(){
+    let start=pdfStart, end=pdfEnd;
+    if(pdfType==='month'){
+      const lastDay=new Date(year,month+1,0);
+      start=fmt(new Date(year,month,1)); end=fmt(lastDay);
+    }
+    const title=pdfType==='month'?`Wachtplanning ${MONTHS[month]} ${year}`:`Wachtplanning ${fmtDisplay(start)} – ${fmtDisplay(end)}`;
+    exportToPDF(title,start,end,schedule,doctors,periods,customHolidays,RL);
+    setPdfModal(false);
+  }
+
+  const navItems=[
+    {id:'calendar',icon:'📅',label:RLTitle,section:'Planning'},
+    {id:'overview',icon:'📊',label:'Overzicht',section:null},
+    {id:'periods',icon:'📆',label:'Wachtperiodes',section:'Instellingen',adminOnly:true},
+    {id:'locks',icon:'🔒',label:'Vergrendelingen',section:null,adminOnly:true},
+    {id:'holidays',icon:'🔴',label:'Feestdagen',section:null,adminOnly:true},
+    {id:'carryover',icon:'↩️',label:'Overdracht',section:null,adminOnly:true},
+    {id:'doctors',icon:RLIcon,label:PlurU,section:null,adminOnly:true},
+    {id:'settings',icon:'⚙️',label:'Instellingen',section:null,adminOnly:true},
+    {id:'preferences',icon:'⭐',label:'Voorkeuren',section:'Mijn account'},
+    {id:'users',icon:'👥',label:'Gebruikers',section:null,adminOnly:true},
+  ];
+
+  return (
+    <div className="app">
+      <div className="sidebar">
+        <div className="sidebar-logo">
+          <h1>MedWatch</h1>
+          <span>{RLIcon} {RLTitle}</span>
+        </div>
+        <nav className="nav">
+          {navItems.filter(i=>!i.adminOnly||isAdmin).map((item,idx,arr)=>{
+            const prev=arr[idx-1];
+            return <React.Fragment key={item.id}>
+              {item.section&&<div className="nav-section">{item.section}</div>}
+              <div className={`nav-item ${page===item.id?'active':''}`} onClick={()=>setPage(item.id)}>
+                <span style={{width:18,textAlign:'center',fontSize:15}}>{item.icon}</span>
+                {item.label}
+                {item.id==='periods'&&periods.length>0&&<span className="chip chip-accent" style={{marginLeft:'auto',padding:'1px 6px',fontSize:10}}>{periods.length}</span>}
+                {item.id==='locks'&&lockedRanges.length>0&&<span className="chip chip-warn" style={{marginLeft:'auto',padding:'1px 6px',fontSize:10}}>{lockedRanges.length}</span>}
+                {item.id==='overview'&&problems.length>0&&<span className="chip chip-danger" style={{marginLeft:'auto',padding:'1px 6px',fontSize:10}}>{problems.length}</span>}
+              </div>
+            </React.Fragment>;
+          })}
+        </nav>
+        <div className="sidebar-user">
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <Avatar doc={currentUser} size={32}/>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:13,fontWeight:600,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{currentUser.name}</div>
+              <div style={{display:'flex',alignItems:'center',gap:6,marginTop:2}}>
+                <span className={`role-badge ${currentUser.role==='admin'?'badge-admin':'badge-doctor'}`} style={{fontSize:9,padding:'1px 6px'}}>{currentUser.role==='admin'?'Admin':SingU}</span>
+              </div>
+            </div>
+            <button className="btn btn-ghost btn-icon btn-sm" onClick={logout} title="Uitloggen" style={{fontSize:16}}>⏏</button>
+          </div>
+        </div>
+      </div>
+
+      <div className="main">
+
+        {/* SUGGESTION PANEL */}
+        {suggestions&&isAdmin&&(
+          <div className="suggestion-panel">
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12}}>
+              <div>
+                <div style={{fontWeight:700,fontSize:15,color:'var(--warn)'}}>⚖ Manuele wijziging verstoort evenredigheid</div>
+                <div style={{fontSize:12,color:'var(--muted)',marginTop:3}}>{doctors.find(d=>d.id===suggestions.newDocId)?.name} op {fmtDisplay(suggestions.date)}</div>
+              </div>
+              <button className="btn btn-outline btn-sm" onClick={()=>setSuggestions(null)}>Sluiten</button>
+            </div>
+            {suggestions.items.map((item,i)=>(
+              <div key={item.candidate.id} className={`suggestion-row ${i===0&&!item.risky?'best':item.risky?'risky':''}`}>
+                <Avatar doc={item.candidate} size={28}/>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:600,fontSize:12}}>{item.candidate.name} neemt {fmtDisplay(item.swapDate)} over</div>
+                  <div style={{fontSize:11,color:'var(--muted)',marginTop:1}}>
+                    Verschil: {item.diff}{item.risky&&<span style={{color:'var(--warn)',marginLeft:8}}>⚠ opeenvolgende week</span>}
+                    {i===0&&!item.risky&&<span style={{color:'var(--positive)',marginLeft:8}}>✓ Aanbevolen</span>}
+                  </div>
+                </div>
+                <button className={`btn btn-sm ${item.risky?'btn-warn':'btn-success'}`}
+                  onClick={()=>{setSchedule(s=>({...s,[item.swapDate]:[...((s[item.swapDate]||[]).filter(id=>id!==suggestions.newDocId)),item.candidate.id]}));setAdminEdits(ae=>({...ae,[item.swapDate]:true}));setSuggestions(null);}}>
+                  Toepassen
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ═══════ CALENDAR ═══════ */}
+        {page==='calendar'&&(
+          <div className="fade-in">
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:20}}>
+              <div>
+                <h2 style={{fontSize:26,marginBottom:4}}>{RLTitle}</h2>
+                <p style={{color:'var(--muted)',fontSize:13}}>
+                  {scheduledDays} gepland · {openThisMonth} open deze maand
+                  {adminEditCount>0&&<span className="chip chip-purple" style={{marginLeft:8}}>✏ {adminEditCount} manuele aanpassing{adminEditCount!==1?'en':''}</span>}
+                </p>
+              </div>
+              <div style={{display:'flex',gap:8,flexWrap:'wrap',justifyContent:'flex-end'}}>
+                <button className="btn btn-outline" onClick={()=>setPdfModal(true)}>📄 PDF</button>
+                {isAdmin&&<>
+                  {adminEditCount>0&&<button className="btn btn-outline btn-sm" onClick={()=>{if(window.confirm('Alle manuele markeringen wissen?')) setAdminEdits({});}} title="Manuele markeringen wissen">✏ Reset markeringen</button>}
+                  <button className="btn btn-outline" onClick={()=>{setSchedule({});setSuggestions(null);setAdminEdits({});}}>🗑 Reset</button>
+                  <button className="btn btn-primary" onClick={()=>setModal('plan')}>⚡ Auto-inplannen</button>
+                </>}
+              </div>
+            </div>
+
+            {/* Problems panel */}
+            {isAdmin&&problems.length>0&&(
+              <div className="problems-panel">
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                  <div style={{fontWeight:700,fontSize:14,color:'var(--danger)'}}>⚠ {problems.length} probleem{problems.length!==1?'en':''} gevonden</div>
+                  <button className="btn btn-ghost btn-sm" onClick={()=>setShowProblems(v=>!v)}>{showProblems?'Inklappen':'Tonen'}</button>
+                </div>
+                {showProblems&&problems.map((p,i)=>(
+                  <div key={i} className={`problem-item p-${p.type}`}><span>{p.icon}</span><span>{p.text}</span></div>
+                ))}
+              </div>
+            )}
+
+            {scheduledDays>0&&(
+              <div className="equity-bar">
+                <span style={{fontSize:11,color:'var(--muted)',fontWeight:700,textTransform:'uppercase',letterSpacing:'0.5px',minWidth:115}}>Evenredigheid</span>
+                <div className="progress-bar" style={{height:8}}><div className="progress-fill" style={{width:equityScore+'%',background:eqColor}}></div></div>
+                <span style={{fontWeight:700,color:eqColor,minWidth:36}}>{equityScore}%</span>
+                {Object.keys(consecMap).length>0&&<span style={{fontSize:11,color:'var(--danger)',marginLeft:8}}>🔴 opeenvolgende weken</span>}
+              </div>
+            )}
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
+              <div className="cal-nav">
+                <button onClick={prevMonth}>‹</button>
+                <span className="month-title">{MONTHS[month]} {year}</span>
+                <button onClick={nextMonth}>›</button>
+              </div>
+              <div className="legend">
+                <div className="legend-item"><div className="legend-box" style={{background:'var(--weekend)',border:'1px solid rgba(245,158,11,0.3)'}}></div>Weekend</div>
+                <div className="legend-item"><div className="legend-box" style={{background:'var(--holiday)',border:'1px solid rgba(239,68,68,0.3)'}}></div>Feestdag</div>
+                {isAdmin&&<div className="legend-item"><div className="legend-box" style={{background:'rgba(139,92,246,0.18)',border:'1px solid rgba(139,92,246,0.5)'}}></div>Manueel</div>}
+                <div className="legend-item"><div className="legend-box" style={{background:'rgba(48,54,61,0.7)',border:'1px solid var(--border)'}}></div>Vergrendeld</div>
+                {periods.map(p=><div key={p.id} className="legend-item"><div className="legend-box" style={{background:p.color+'44',border:`1px solid ${p.color}`}}></div>{p.name}</div>)}
+              </div>
+            </div>
+            <div className="cal-header-row">
+              {WEEKDAYS.map((d,i)=><div key={d} className={`cal-day-name${i===0||i===6?' weekend-header':''}`}>{d}</div>)}
+            </div>
+            <div className="calendar-grid">
+              {days.map(({date,current})=>{
+                const assigned=schedule[date]||[];
+                const holidayName=getHolidayName(date,customHolidays);
+                const period=current?getPeriodForDate(date,periods):null;
+                const required=current?getSlots(date):1;
+                const isMulti=required>1;
+                const filled=assigned.length;
+                const locked=current&&isDateLocked(date,lockedRanges);
+                const isModified=current&&adminEdits[date];
+                return (
+                  <div key={date} className={cellClass(date,current)} style={period&&current?{outline:`2px solid ${period.color}55`,outlineOffset:-1}:{}}>
+                    {period&&current&&<div className="period-bar" style={{background:period.color+'66'}}></div>}
+                    {current&&isMulti&&<span className="slots-indicator" style={{color:filled>=required?'var(--positive)':filled>0?'var(--warn)':'var(--muted)'}}>{filled}/{required}</span>}
+                    {current&&locked&&<span className="lock-badge">🔒</span>}
+                    <div className="cell-flags">
+                      {current&&isModified&&!locked&&<span className="cell-flag flag-modified">✏</span>}
+                      {current&&!isModified&&cellEquityIssue(date)&&<span className="cell-flag flag-equity">!</span>}
+                      {current&&!isModified&&(schedule[date]||[]).some(id=>consecMap[id])&&<span className="cell-flag flag-consec">W</span>}
+                    </div>
+                    <div className="cal-date" style={{paddingLeft:isMulti?20:0}}>{new Date(date+'T00:00:00').getDate()}</div>
+                    {holidayName&&current&&<div className="cal-holiday-tag">🔴 {holidayName}</div>}
+                    {current&&assigned.map((docId,rankIdx)=>{
+                      const doc=doctors.find(d=>d.id===docId); if(!doc) return null;
+                      const isMe=doc.id===currentUser.id;
+                      const showRank=isMulti&&required>1;
+                      return <div key={docId} className={`doctor-tag${isMe?' highlight-me':''}${isModified&&isAdmin?' admin-edit-tag':''}`}
+                        style={{background:doc.color+'22',color:doc.color}}
+                        onClick={()=>isAdmin&&!locked&&manualToggleDoc(date,docId)}>
+                        {showRank&&<span className="rank-pill" style={{background:doc.color+'44'}}>{RANK_LABELS[rankIdx]||rankIdx+1}</span>}
+                        <span style={{width:12,height:12,borderRadius:'50%',background:doc.color+'55',display:'flex',alignItems:'center',justifyContent:'center',fontSize:7,fontWeight:700,flexShrink:0}}>{doc.initials}</span>
+                        {doc.name.split(' ')[1]||doc.name}
+                        {isAdmin&&!locked&&<span className="remove-btn">✕</span>}
+                      </div>;
+                    })}
+                    {current&&isAdmin&&!locked&&<div className="add-shift" onClick={()=>setModal({type:'addShift',date})}>+ {singular}</div>}
+                    {current&&locked&&<div style={{fontSize:9,color:'var(--muted)',marginTop:3,opacity:0.6}}>Vergrendeld</div>}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ═══════ PERIODS ═══════ */}
+        {page==='periods'&&isAdmin&&(
+          <div className="fade-in">
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+              <div><h2 style={{fontSize:26,marginBottom:4}}>Wachtperiodes</h2><p style={{color:'var(--muted)',fontSize:13}}>Periodes met afwijkend aantal {plural} per dag</p></div>
+              <button className="btn btn-primary" onClick={()=>setModal({type:'editPeriod',period:null})}>+ Nieuwe periode</button>
+            </div>
+            <div className="alert alert-info" style={{marginBottom:20}}>💡 Bij meerdere {plural} per dag: 1e, 2e, ... {singular} (per week consistent dezelfde {singular} per rang). Rank-verdeling wordt ook evenredig bewaakt.</div>
+            {periods.length===0?(
+              <div className="empty-state"><div className="empty-icon">📆</div><div className="empty-title">Geen periodes</div><p style={{fontSize:13,marginBottom:16}}>Maak een periode aan voor vakantie, feestdagen of speciale diensten.</p><button className="btn btn-primary" onClick={()=>setModal({type:'editPeriod',period:null})}>+ Eerste periode aanmaken</button></div>
+            ):(
+              [...periods].sort((a,b)=>a.start.localeCompare(b.start)).map(p=>{
+                const slotDesc=p.slotsByType?`wd:${p.slotsByType.weekday} we:${p.slotsByType.weekend} fst:${p.slotsByType.holiday}`:`${p.slots}/dag`;
+                const docNames=p.eligibleDocs?doctors.filter(d=>p.eligibleDocs.includes(d.id)).map(d=>d.name.split(' ').slice(1).join(' ')).join(', '):'Alle';
+                const isLocked=lockedRanges.some(lr=>p.start>=lr.start&&p.end<=lr.end);
+                return <div key={p.id} className="period-row">
+                  <div style={{width:14,height:14,borderRadius:3,background:p.color,flexShrink:0}}></div>
+                  <div className="period-info">
+                    <div className="period-name">{p.name}{isLocked&&<span className="chip chip-warn" style={{marginLeft:8}}>🔒 Vergrendeld</span>}</div>
+                    <div className="period-meta">{fmtLong(p.start)} → {fmtLong(p.end)} · {Math.round((new Date(p.end)-new Date(p.start))/86400000)+1} dagen</div>
+                    <div style={{fontSize:11,color:'var(--muted)'}}>{slotDesc} · {docNames}</div>
+                  </div>
+                  <div className="period-slots-badge" style={{background:p.color+'22',color:p.color}}>{slotDesc}</div>
+                  <div style={{display:'flex',gap:6,marginLeft:8}}>
+                    <button className="btn btn-outline btn-sm" onClick={()=>setModal({type:'editPeriod',period:p})}>✏</button>
+                    <button className="btn btn-danger btn-sm" onClick={()=>setPeriods(ps=>ps.filter(x=>x.id!==p.id))}>🗑</button>
+                  </div>
+                </div>;
+              })
+            )}
+          </div>
+        )}
+
+        {page==='locks'&&isAdmin&&<LocksPage lockedRanges={lockedRanges} setLockedRanges={setLockedRanges}/>}
+        {page==='holidays'&&isAdmin&&<HolidaysPage customHolidays={customHolidays} setCustomHolidays={setCustomHolidays}/>}
+        {page==='carryover'&&isAdmin&&<CarryOverPage doctors={doctors} carryOver={carryOver} setCarryOver={setCarryOver} stats={stats} roleLabel={RL}/>}
+
+        {/* ═══════ DOCTORS ═══════ */}
+        {page==='doctors'&&isAdmin&&(
+          <div className="fade-in">
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:24}}>
+              <div><h2 style={{fontSize:26,marginBottom:4}}>{PlurU}</h2><p style={{color:'var(--muted)',fontSize:13}}>{doctors.length} actieve gebruikers</p></div>
+            </div>
+            <div className="card">
+              {doctors.map(doc=>{
+                const s=stats[doc.id]||{total:0,weekday:0,weekend:0,holiday:0}; const consec=consecMap[doc.id];
+                return <div key={doc.id} className="doctor-row">
+                  <Avatar doc={doc} size={40}/>
+                  <div className="doctor-info">
+                    <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'wrap'}}>
+                      <span style={{fontWeight:500}}>{doc.name}</span>
+                      <span className={`role-badge ${doc.role==='admin'?'badge-admin':'badge-doctor'}`}>{doc.role==='admin'?'Admin':SingU}</span>
+                      {consec&&<span className="chip chip-danger">⚠ {consec}w aaneengesloten</span>}
+                    </div>
+                    <div style={{fontSize:12,color:'var(--muted)',marginTop:2}}>Weekdagen: {s.weekday} · Weekends: {s.weekend} · Feestdagen: {s.holiday}</div>
+                    {carryOver[doc.id]?.total>0&&<div style={{fontSize:11,color:'var(--accent)',marginTop:2}}>↩ Overdracht: +{carryOver[doc.id].total} (totaal: {s.total+(carryOver[doc.id]?.total||0)})</div>}
+                  </div>
+                  <div style={{flex:1,maxWidth:200}}>
+                    <div style={{display:'flex',alignItems:'center',gap:8}}>
+                      <div className="progress-bar"><div className="progress-fill" style={{width:(s.total/maxTotal*100)+'%',background:doc.color}}></div></div>
+                      <span style={{fontSize:12,fontWeight:700,color:doc.color,minWidth:24,textAlign:'right'}}>{s.total}</span>
+                    </div>
+                  </div>
+                </div>;
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* ═══════ OVERVIEW ═══════ */}
+        {page==='overview'&&(
+          <div className="fade-in">
+            <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:4}}>
+              <h2 style={{fontSize:26,marginBottom:4}}>Verdeling Overzicht</h2>
+              <button className="btn btn-outline" onClick={()=>setPdfModal(true)}>📄 PDF exporteren</button>
+            </div>
+            <p style={{color:'var(--muted)',fontSize:13,marginBottom:24}}>Analyse van de wachtverdeling</p>
+            <div className="stats-grid">
+              {[{val:scheduledDays,label:'Ingeplande dagdiensten',color:'var(--accent)'},
+                {val:openThisMonth,label:'Open deze maand',color:'var(--warn)'},
+                {val:equityScore+'%',label:'Evenredigheid',color:eqColor},
+                {val:Object.keys(consecMap).length,label:'Consec. weken > 1',color:Object.keys(consecMap).length>0?'var(--danger)':'var(--positive)'},
+                {val:adminEditCount,label:'Manuele aanpassingen',color:'#a78bfa'},
+                {val:lockedRanges.reduce((s,r)=>s+Math.round((new Date(r.end)-new Date(r.start))/86400000)+1,0),label:'Vergrendelde dagen',color:'var(--muted)'},
+              ].map(s=><div key={s.label} className="stat-card"><div className="stat-value" style={{color:s.color}}>{s.val}</div><div className="stat-label">{s.label}</div></div>)}
+            </div>
+            {problems.length>0&&(
+              <div className="problems-panel" style={{marginBottom:16}}>
+                <div style={{fontWeight:700,fontSize:14,color:'var(--danger)',marginBottom:8}}>⚠ Problemen ({problems.length})</div>
+                {problems.map((p,i)=><div key={i} className={`problem-item p-${p.type}`}><span>{p.icon}</span><span>{p.text}</span></div>)}
+              </div>
+            )}
+            {equityScore>=80&&scheduledDays>0&&!Object.keys(consecMap).length&&problems.length===0&&<div className="alert alert-success" style={{marginBottom:12}}>✓ <div>Uitstekend uitgebalanceerd!</div></div>}
+            
+            {/* Admin edits summary */}
+            {adminEditCount>0&&(
+              <div className="alert alert-purple" style={{marginBottom:16}}>
+                ✏ <div><strong>{adminEditCount} datum{adminEditCount!==1?'s':''}</strong> werden manueel aangepast door admin (paars gemarkeerd op kalender).
+                {' '}<button className="btn btn-ghost btn-sm" style={{color:'#c4b5fd',padding:'2px 8px'}} onClick={()=>{if(window.confirm('Alle manuele markeringen wissen?')) setAdminEdits({});}}>Markeringen wissen</button></div>
+              </div>
+            )}
+            
+            <div className="card">
+              <div className="card-header"><h3 className="card-title">Per {singular}</h3></div>
+              <table className="dist-table">
+                <thead><tr><th>{SingU}</th><th>Totaal</th><th>+Overdracht</th><th>Weekdagen</th><th>Weekends</th><th>Feestdagen</th><th>Max consec.</th><th>Status</th></tr></thead>
+                <tbody>
+                  {doctors.map(doc=>{
+                    const s=stats[doc.id]||{total:0,weekday:0,weekend:0,holiday:0};
+                    const co=carryOver[doc.id]||{};
+                    const avg=doctors.reduce((a,d)=>a+(stats[d.id]?.total||0),0)/Math.max(1,doctors.length);
+                    const status=Math.abs(s.total-avg)<1.5?'ok':Math.abs(s.total-avg)<3?'warn':'danger';
+                    const consec=maxConsecWeeks(schedule,doc.id);
+                    return <tr key={doc.id}>
+                      <td><div style={{display:'flex',alignItems:'center',gap:8}}><Avatar doc={doc} size={26}/>{doc.name}</div></td>
+                      <td><strong>{s.total}</strong></td>
+                      <td style={{color:'var(--accent)',fontSize:12}}>{co.total>0?`+${co.total} = ${s.total+(co.total||0)}`:'-'}</td>
+                      <td>{s.weekday}</td><td>{s.weekend}</td><td>{s.holiday}</td>
+                      <td><span style={{color:consec>1?'var(--danger)':'inherit',fontWeight:consec>1?700:400}}>{consec>0?consec:'-'}{consec>1?' ⚠':''}</span></td>
+                      <td><span className={`badge badge-${status}`}>{status==='ok'?'✓':status==='warn'?'~':'!'}</span></td>
+                    </tr>;
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {page==='settings'&&isAdmin&&<SettingsPage roleLabel={RL} setRoleLabel={setRoleLabel}/>}
+        {page==='preferences'&&<PreferencesPage doctors={doctors} preferences={preferences} setPreferences={setPreferences} currentUser={currentUser} customH={customHolidays}/>}
+        {page==='users'&&isAdmin&&<UserManagementPage users={users} setUsers={setUsers} currentUser={currentUser} setCurrentUser={setCurrentUser} roleLabel={RL}/>}
+
+      </div>{/* /main */}
+
+      {/* ═══════ MODALS ═══════ */}
+
+      {modal==='plan'&&(
+        <ModalWrap title="Auto-inplannen" subtitle="Lege slots worden ingevuld. Overdracht en rangorde worden meegenomen." onClose={()=>setModal(null)}>
+          <div className="form-row" style={{marginBottom:16}}>
+            <div className="form-group" style={{marginBottom:0}}><label className="form-label">Startdatum</label><input type="date" className="form-input" value={planStart} onChange={e=>setPlanStart(e.target.value)}/></div>
+            <div className="form-group" style={{marginBottom:0}}><label className="form-label">Einddatum</label><input type="date" className="form-input" value={planEnd} onChange={e=>setPlanEnd(e.target.value)}/></div>
+          </div>
+          <div className="form-group">
+            <label className="form-label">{PlurU} (leeg = alle)</label>
+            <div style={{display:'flex',flexWrap:'wrap',gap:6,marginTop:4}}>
+              {doctors.map(doc=>(
+                <div key={doc.id} onClick={()=>setPlanDocs(d=>d.includes(doc.id)?d.filter(x=>x!==doc.id):[...d,doc.id])}
+                  style={{display:'flex',alignItems:'center',gap:6,padding:'5px 10px',borderRadius:6,cursor:'pointer',border:'1px solid',
+                    borderColor:planDocs.includes(doc.id)?doc.color:'var(--border)',background:planDocs.includes(doc.id)?doc.color+'22':'transparent',fontSize:12}}>
+                  <Avatar doc={doc} size={18}/>{doc.name.split(' ').slice(1).join(' ')||doc.name}
+                </div>
+              ))}
+            </div>
+          </div>
+          {Object.values(carryOver).some(c=>c.total>0)&&<div className="alert alert-info">↩ Overdracht actief — wordt meegenomen in evenredige verdeling.</div>}
+          {lockedRanges.length>0&&<div className="alert alert-warn">🔒 {lockedRanges.length} vergrendelde periode(s) worden overgeslagen.</div>}
+          <div className="alert alert-info" style={{marginTop:0}}>✓ Max. 1 aaneengesloten week · Evenredige verdeling · Rang-consistentie per week · Voorkeuren gerespecteerd</div>
+          <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:8}}>
+            <button className="btn btn-outline" onClick={()=>setModal(null)}>Annuleer</button>
+            <button className="btn btn-success" onClick={runAutoSchedule} disabled={!planStart||!planEnd}>✓ Inplannen</button>
+          </div>
+        </ModalWrap>
+      )}
+
+      {modal?.type==='editPeriod'&&(
+        <ModalWrap title={modal.period?`Periode bewerken — ${modal.period.name}`:'Nieuwe wachtperiode'} subtitle="Definieer een periode met aangepast aantal artsen per dag" onClose={()=>setModal(null)} large>
+          <PeriodForm period={modal.period} doctors={doctors} onSave={savePeriod} onClose={()=>setModal(null)} roleLabel={RL}/>
+        </ModalWrap>
+      )}
+
+      {modal?.type==='addShift'&&isAdmin&&(()=>{
+        const date=modal.date;
+        if(isDateLocked(date,lockedRanges)) return <ModalWrap title="Vergrendeld" onClose={()=>setModal(null)}><div className="alert alert-warn">🔒 Deze datum is vergrendeld en kan niet bewerkt worden.</div><div style={{display:'flex',justifyContent:'flex-end'}}><button className="btn btn-outline" onClick={()=>setModal(null)}>Sluiten</button></div></ModalWrap>;
+        const period=getPeriodForDate(date,periods);
+        const required=getSlots(date);
+        const filled=(schedule[date]||[]).length;
+        const holidayName=getHolidayName(date,customHolidays);
+        return <ModalWrap
+          title={`Wacht — ${fmtDisplay(date)}`}
+          subtitle={`${holidayName?'🔴 '+holidayName+' · ':''}${holidayName?'Feestdag':isWeekend(date)?'Weekend':'Weekdag'}${period?' · '+period.name:''} · ${filled}/${required} ingevuld`}
+          onClose={()=>setModal(null)}>
+          {filled<required&&<div className="alert alert-warn">Nog {required-filled} slot(s) open ({required} vereist).</div>}
+          {filled>=required&&required>1&&<div className="alert alert-success">✓ Alle {required} slots ingevuld.</div>}
+          {required>1&&<div className="alert alert-purple">Bij meerdere {plural}: 1e {singular} = primaire bevoegdheid, 2e {singular} = secundaire bevoegdheid. Per week dezelfde {singular} per rang.</div>}
+          <div style={{display:'flex',flexDirection:'column',gap:8}}>
+            {doctors.map(doc=>{
+              const assigned=(schedule[date]||[]).includes(doc.id);
+              const pref=(preferences[date]||{})[doc.id];
+              const dt=getDayType(date,customHolidays);
+              const willViolate=!assigned&&wouldViolateConsec(schedule,doc.id,date);
+              const inPeriod=!period?.eligibleDocs||period.eligibleDocs.includes(doc.id);
+              const rankIdx=(schedule[date]||[]).indexOf(doc.id);
+              return <div key={doc.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 12px',borderRadius:8,
+                background:'var(--surface2)',border:'1px solid',borderColor:assigned?doc.color:willViolate?'rgba(239,68,68,0.35)':'transparent',opacity:!inPeriod?0.5:1}}>
+                <Avatar doc={doc} size={32}/>
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:500,display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+                    {doc.name}{!inPeriod&&<span style={{fontSize:10,color:'var(--muted)'}}>(buiten periode)</span>}
+                    {assigned&&required>1&&<span className="chip chip-accent" style={{fontSize:10,padding:'1px 6px'}}>{RANK_LABELS[rankIdx]||rankIdx+1} arts</span>}
+                    {pref==='positive'&&<span style={{fontSize:10,color:'var(--positive)'}}>✓</span>}
+                    {pref==='negative'&&<span style={{fontSize:10,color:'var(--negative)'}}>✕</span>}
+                  </div>
+                  <div style={{fontSize:11,color:'var(--muted)',marginTop:2}}>
+                    {DAY_TYPE_LABELS[dt]}: {stats[doc.id]?.[dt]||0}
+                    {willViolate&&<span style={{color:'var(--danger)',marginLeft:8}}>⚠ opeenvolgende week!</span>}
+                  </div>
+                </div>
+                <button className={`btn btn-sm ${assigned?'btn-danger':willViolate?'btn-warn':'btn-outline'}`}
+                  onClick={()=>manualToggleDoc(date,doc.id)}>
+                  {assigned?'Verwijder':willViolate?'⚠ Toewijzen':'Toewijzen'}
+                </button>
+              </div>;
+            })}
+          </div>
+          <div style={{marginTop:12,display:'flex',justifyContent:'flex-end'}}>
+            <button className="btn btn-outline" onClick={()=>setModal(null)}>Sluiten</button>
+          </div>
+        </ModalWrap>;
+      })()}
+
+      {/* PDF EXPORT MODAL */}
+      {pdfModal&&(
+        <ModalWrap title="PDF exporteren" subtitle="Genereer een afdrukbare planning" onClose={()=>setPdfModal(false)}>
+          <div className="form-group">
+            <label className="form-label">Periode</label>
+            <div style={{display:'flex',gap:8}}>
+              <button className={`btn ${pdfType==='month'?'btn-primary':'btn-outline'}`} onClick={()=>setPdfType('month')}>Huidige maand</button>
+              <button className={`btn ${pdfType==='custom'?'btn-primary':'btn-outline'}`} onClick={()=>setPdfType('custom')}>Aangepaste periode</button>
+              {periods.map(p=><button key={p.id} className={`btn ${pdfType===p.id?'btn-primary':'btn-outline'}`} style={{borderColor:p.color,color:pdfType===p.id?'white':p.color}} onClick={()=>{setPdfType(p.id);setPdfStart(p.start);setPdfEnd(p.end);}}>📆 {p.name}</button>)}
+            </div>
+          </div>
+          {pdfType==='custom'&&(
+            <div className="form-row">
+              <div className="form-group" style={{marginBottom:0}}><label className="form-label">Van</label><input type="date" className="form-input" value={pdfStart} onChange={e=>setPdfStart(e.target.value)}/></div>
+              <div className="form-group" style={{marginBottom:0}}><label className="form-label">Tot</label><input type="date" className="form-input" value={pdfEnd} onChange={e=>setPdfEnd(e.target.value)}/></div>
+            </div>
+          )}
+          {pdfType==='month'&&<div className="alert alert-info">📅 Exporteert {MONTHS[month]} {year}</div>}
+          <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:16}}>
+            <button className="btn btn-outline" onClick={()=>setPdfModal(false)}>Annuleer</button>
+            <button className="btn btn-primary" onClick={runExportPDF} disabled={pdfType==='custom'&&(!pdfStart||!pdfEnd||pdfStart>pdfEnd)}>📄 PDF genereren</button>
+          </div>
+        </ModalWrap>
+      )}
+
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>

@@ -1,0 +1,311 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="780" viewBox="0 0 1200 780">
+
+  <!-- Background -->
+  <rect width="1200" height="780" fill="#0d1117"/>
+
+  <!-- Browser chrome -->
+  <rect x="0" y="0" width="1200" height="32" fill="#161b22"/>
+  <rect x="0" y="31" width="1200" height="1" fill="#30363d"/>
+  <circle cx="20" cy="16" r="6" fill="#ef4444" opacity="0.7"/>
+  <circle cx="40" cy="16" r="6" fill="#f59e0b" opacity="0.7"/>
+  <circle cx="60" cy="16" r="6" fill="#10b981" opacity="0.7"/>
+  <rect x="120" y="6" width="560" height="20" rx="10" fill="#1f2937"/>
+  <text x="400" y="21" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#8b949e">medwatch/index.html</text>
+
+  <!-- Sidebar -->
+  <rect x="0" y="32" width="220" height="748" fill="#161b22"/>
+  <rect x="220" y="32" width="1" height="748" fill="#30363d"/>
+
+  <!-- Sidebar logo -->
+  <text x="20" y="72" font-family="Georgia, serif" font-size="20" font-weight="700" fill="#3b82f6">MedWatch</text>
+  <text x="20" y="88" font-family="Arial, sans-serif" font-size="10" fill="#8b949e">👨‍⚕️ Wachtplanning</text>
+  <line x1="0" y1="96" x2="220" y2="96" stroke="#30363d" stroke-width="1"/>
+
+  <!-- Nav section label -->
+  <text x="20" y="116" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#8b949e" letter-spacing="0.8">PLANNING</text>
+
+  <!-- Nav item active: Kalender -->
+  <rect x="0" y="120" width="220" height="34" fill="rgba(59,130,246,0.08)"/>
+  <rect x="0" y="120" width="3" height="34" fill="#3b82f6"/>
+  <text x="22" y="142" font-family="Arial, sans-serif" font-size="13" fill="#3b82f6">📅  Wachtplanning</text>
+
+  <!-- Nav item: Overzicht -->
+  <text x="22" y="172" font-family="Arial, sans-serif" font-size="13" fill="#8b949e">📊  Overzicht</text>
+
+  <!-- Nav section Instellingen -->
+  <text x="20" y="202" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#8b949e" letter-spacing="0.8">INSTELLINGEN</text>
+  <text x="22" y="224" font-family="Arial, sans-serif" font-size="13" fill="#8b949e">📆  Wachtperiodes</text>
+  <text x="22" y="252" font-family="Arial, sans-serif" font-size="13" fill="#8b949e">🔒  Vergrendelingen</text>
+  <text x="22" y="280" font-family="Arial, sans-serif" font-size="13" fill="#8b949e">🔴  Feestdagen</text>
+  <text x="22" y="308" font-family="Arial, sans-serif" font-size="13" fill="#8b949e">↩️  Overdracht</text>
+  <text x="22" y="336" font-family="Arial, sans-serif" font-size="13" fill="#8b949e">👨‍⚕️  Artsen</text>
+  <text x="22" y="364" font-family="Arial, sans-serif" font-size="13" fill="#8b949e">⚙️  Instellingen</text>
+
+  <!-- Nav section Mijn account -->
+  <text x="20" y="394" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#8b949e" letter-spacing="0.8">MIJN ACCOUNT</text>
+  <text x="22" y="416" font-family="Arial, sans-serif" font-size="13" fill="#8b949e">⭐  Voorkeuren</text>
+  <text x="22" y="444" font-family="Arial, sans-serif" font-size="13" fill="#8b949e">👥  Gebruikers</text>
+
+  <!-- Sidebar user -->
+  <line x1="0" y1="734" x2="220" y2="734" stroke="#30363d" stroke-width="1"/>
+  <circle cx="38" cy="757" r="14" fill="#3b82f633"/>
+  <text x="38" y="762" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#3b82f6">AD</text>
+  <text x="60" y="753" font-family="Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">Admin</text>
+  <rect x="60" y="758" width="38" height="14" rx="7" fill="rgba(59,130,246,0.2)"/>
+  <text x="79" y="769" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="700" fill="#3b82f6">Admin</text>
+  <text x="200" y="762" font-family="Arial, sans-serif" font-size="16" fill="#8b949e">⏏</text>
+
+  <!-- MAIN CONTENT area -->
+  <!-- Page header -->
+  <text x="248" y="80" font-family="Georgia, serif" font-size="26" fill="#e6edf3">Wachtplanning</text>
+  <text x="248" y="100" font-family="Arial, sans-serif" font-size="13" fill="#8b949e">24 gepland · 3 open deze maand</text>
+
+  <!-- Chip: manuele aanpassingen -->
+  <rect x="414" y="88" width="148" height="18" rx="9" fill="rgba(139,92,246,0.15)"/>
+  <text x="488" y="101" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="600" fill="#a78bfa">✏ 2 manuele aanpassingen</text>
+
+  <!-- Buttons top right -->
+  <rect x="970" y="62" width="52" height="32" rx="8" fill="transparent" stroke="#30363d" stroke-width="1"/>
+  <text x="996" y="82" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#e6edf3">📄 PDF</text>
+  <rect x="1030" y="62" width="52" height="32" rx="8" fill="transparent" stroke="#30363d" stroke-width="1"/>
+  <text x="1056" y="82" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#e6edf3">🗑 Reset</text>
+  <rect x="1090" y="62" width="88" height="32" rx="8" fill="#3b82f6"/>
+  <text x="1134" y="82" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="white">⚡ Auto-inplannen</text>
+
+  <!-- Equity bar -->
+  <rect x="248" y="114" width="940" height="36" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="264" y="136" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#8b949e" letter-spacing="0.5">EVENREDIGHEID</text>
+  <rect x="382" y="126" width="520" height="8" rx="4" fill="#1f2937"/>
+  <rect x="382" y="126" width="436" height="8" rx="4" fill="#10b981"/>
+  <text x="912" y="136" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#10b981">84%</text>
+
+  <!-- Month nav -->
+  <rect x="248" y="164" width="32" height="28" rx="6" fill="#1f2937" stroke="#30363d" stroke-width="1"/>
+  <text x="264" y="183" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#e6edf3">‹</text>
+  <text x="296" y="183" font-family="Georgia, serif" font-size="20" fill="#e6edf3">Juli 2025</text>
+  <rect x="464" y="164" width="32" height="28" rx="6" fill="#1f2937" stroke="#30363d" stroke-width="1"/>
+  <text x="480" y="183" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#e6edf3">›</text>
+
+  <!-- Legend -->
+  <rect x="700" y="170" width="14" height="14" rx="3" fill="rgba(245,158,11,0.13)" stroke="rgba(245,158,11,0.3)" stroke-width="1"/>
+  <text x="720" y="182" font-family="Arial, sans-serif" font-size="12" fill="#8b949e">Weekend</text>
+  <rect x="790" y="170" width="14" height="14" rx="3" fill="rgba(239,68,68,0.13)" stroke="rgba(239,68,68,0.3)" stroke-width="1"/>
+  <text x="810" y="182" font-family="Arial, sans-serif" font-size="12" fill="#8b949e">Feestdag</text>
+  <rect x="886" y="170" width="14" height="14" rx="3" fill="rgba(139,92,246,0.18)" stroke="rgba(139,92,246,0.5)" stroke-width="1"/>
+  <text x="906" y="182" font-family="Arial, sans-serif" font-size="12" fill="#8b949e">Manueel</text>
+  <rect x="970" y="170" width="14" height="14" rx="3" fill="rgba(48,54,61,0.7)" stroke="#30363d" stroke-width="1"/>
+  <text x="990" y="182" font-family="Arial, sans-serif" font-size="12" fill="#8b949e">Vergrendeld</text>
+  <rect x="1076" y="170" width="14" height="14" rx="3" fill="rgba(99,102,241,0.25)" stroke="#6366f1" stroke-width="1"/>
+  <text x="1096" y="182" font-family="Arial, sans-serif" font-size="12" fill="#8b949e">Zomervakantie</text>
+
+  <!-- Day headers -->
+  <g font-family="Arial, sans-serif" font-size="11" font-weight="700" letter-spacing="0.5">
+    <text x="282" y="210" text-anchor="middle" fill="#f59e0b">ZO</text>
+    <text x="416" y="210" text-anchor="middle" fill="#8b949e">MA</text>
+    <text x="550" y="210" text-anchor="middle" fill="#8b949e">DI</text>
+    <text x="684" y="210" text-anchor="middle" fill="#8b949e">WO</text>
+    <text x="818" y="210" text-anchor="middle" fill="#8b949e">DO</text>
+    <text x="952" y="210" text-anchor="middle" fill="#8b949e">VR</text>
+    <text x="1086" y="210" text-anchor="middle" fill="#f59e0b">ZA</text>
+  </g>
+
+  <!-- Calendar cells - Row 1 -->
+  <!-- Cell widths: 134px, gap 2px, start x=248 -->
+
+  <!-- Helpers: define cell macro -->
+  <!-- ZO col: 248, MA: 384, DI: 520, WO: 656, DO: 792, VR: 928, ZA: 1064 -->
+
+  <!-- Row 1: week jun30 – jul6 -->
+  <!-- ZO Jun 30 - other month -->
+  <rect x="248" y="216" width="130" height="88" rx="8" fill="#1f2937" opacity="0.3"/>
+  <text x="254" y="231" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e" opacity="0.5">30</text>
+
+  <!-- MA Jul 1 -->
+  <rect x="382" y="216" width="130" height="88" rx="8" fill="#1f2937"/>
+  <text x="388" y="231" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">1</text>
+  <rect x="390" y="238" width="62" height="18" rx="4" fill="rgba(59,130,246,0.2)"/>
+  <text x="396" y="251" font-family="Arial, sans-serif" font-size="10" font-weight="500" fill="#3b82f6">AD  Dr. Janssen</text>
+
+  <!-- DI Jul 2 -->
+  <rect x="516" y="216" width="130" height="88" rx="8" fill="#1f2937"/>
+  <text x="522" y="231" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">2</text>
+  <rect x="524" y="238" width="62" height="18" rx="4" fill="rgba(16,185,129,0.2)"/>
+  <text x="530" y="251" font-family="Arial, sans-serif" font-size="10" font-weight="500" fill="#10b981">LM  Dr. Martens</text>
+
+  <!-- WO Jul 3 -->
+  <rect x="650" y="216" width="130" height="88" rx="8" fill="#1f2937"/>
+  <text x="656" y="231" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">3</text>
+  <rect x="658" y="238" width="62" height="18" rx="4" fill="rgba(245,158,11,0.2)"/>
+  <text x="664" y="251" font-family="Arial, sans-serif" font-size="10" font-weight="500" fill="#f59e0b">SP  Dr. Peters</text>
+
+  <!-- DO Jul 4 -->
+  <rect x="784" y="216" width="130" height="88" rx="8" fill="#1f2937"/>
+  <text x="790" y="231" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">4</text>
+  <rect x="792" y="238" width="62" height="18" rx="4" fill="rgba(236,72,153,0.2)"/>
+  <text x="798" y="251" font-family="Arial, sans-serif" font-size="10" font-weight="500" fill="#ec4899">KV  Dr. Vermee</text>
+
+  <!-- VR Jul 5 -->
+  <rect x="918" y="216" width="130" height="88" rx="8" fill="#1f2937"/>
+  <text x="924" y="231" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">5</text>
+  <rect x="926" y="238" width="62" height="18" rx="4" fill="rgba(59,130,246,0.2)"/>
+  <text x="932" y="251" font-family="Arial, sans-serif" font-size="10" font-weight="500" fill="#3b82f6">AD  Dr. Janssen</text>
+
+  <!-- ZA Jul 6 - weekend -->
+  <rect x="1052" y="216" width="130" height="88" rx="8" fill="rgba(245,158,11,0.13)"/>
+  <text x="1058" y="231" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">6</text>
+  <rect x="1060" y="238" width="62" height="18" rx="4" fill="rgba(16,185,129,0.2)"/>
+  <text x="1066" y="251" font-family="Arial, sans-serif" font-size="10" font-weight="500" fill="#10b981">LM  Dr. Martens</text>
+
+  <!-- Row 2: week jul 7-13 -->
+  <!-- ZO Jul 7 - weekend -->
+  <rect x="248" y="308" width="130" height="88" rx="8" fill="rgba(245,158,11,0.13)"/>
+  <text x="254" y="323" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">7</text>
+  <rect x="256" y="330" width="62" height="18" rx="4" fill="rgba(245,158,11,0.2)"/>
+  <text x="262" y="343" font-family="Arial, sans-serif" font-size="10" font-weight="500" fill="#f59e0b">SP  Dr. Peters</text>
+
+  <!-- MA Jul 8 - today highlight -->
+  <rect x="382" y="308" width="130" height="88" rx="8" fill="#1f2937" stroke="#3b82f6" stroke-width="1.5"/>
+  <text x="388" y="323" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#3b82f6">8</text>
+  <rect x="390" y="330" width="62" height="18" rx="4" fill="rgba(236,72,153,0.2)"/>
+  <text x="396" y="343" font-family="Arial, sans-serif" font-size="10" font-weight="500" fill="#ec4899">KV  Dr. Vermee</text>
+  <text x="390" y="364" font-family="Arial, sans-serif" font-size="10" fill="#3b82f6" opacity="0.6">+ arts</text>
+
+  <!-- DI Jul 9 - admin modified (purple) -->
+  <rect x="516" y="308" width="130" height="88" rx="8" fill="rgba(139,92,246,0.12)" stroke="rgba(139,92,246,0.5)" stroke-width="1"/>
+  <text x="522" y="323" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">9</text>
+  <text x="612" y="321" font-family="Arial, sans-serif" font-size="9" font-weight="700" fill="#a78bfa">✏</text>
+  <rect x="524" y="330" width="62" height="18" rx="4" fill="rgba(59,130,246,0.2)" stroke="#8b5cf6" stroke-width="1"/>
+  <text x="530" y="343" font-family="Arial, sans-serif" font-size="10" font-weight="500" fill="#3b82f6">AD  Dr. Janssen</text>
+
+  <!-- WO Jul 10 -->
+  <rect x="650" y="308" width="130" height="88" rx="8" fill="#1f2937"/>
+  <text x="656" y="323" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">10</text>
+  <rect x="658" y="330" width="62" height="18" rx="4" fill="rgba(16,185,129,0.2)"/>
+  <text x="664" y="343" font-family="Arial, sans-serif" font-size="10" font-weight="500" fill="#10b981">LM  Dr. Martens</text>
+
+  <!-- DO Jul 11 - holiday (Nationale feestdag) -->
+  <rect x="784" y="308" width="130" height="88" rx="8" fill="rgba(239,68,68,0.13)"/>
+  <text x="790" y="323" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">11</text>
+  <text x="790" y="335" font-family="Arial, sans-serif" font-size="9" font-weight="700" fill="#ef4444">🔴 Nationale feestdag</text>
+  <rect x="792" y="340" width="62" height="18" rx="4" fill="rgba(245,158,11,0.2)"/>
+  <text x="798" y="353" font-family="Arial, sans-serif" font-size="10" font-weight="500" fill="#f59e0b">SP  Dr. Peters</text>
+
+  <!-- VR Jul 12 -->
+  <rect x="918" y="308" width="130" height="88" rx="8" fill="#1f2937"/>
+  <text x="924" y="323" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">12</text>
+  <rect x="926" y="330" width="62" height="18" rx="4" fill="rgba(236,72,153,0.2)"/>
+  <text x="932" y="343" font-family="Arial, sans-serif" font-size="10" font-weight="500" fill="#ec4899">KV  Dr. Vermee</text>
+
+  <!-- ZA Jul 13 - weekend -->
+  <rect x="1052" y="308" width="130" height="88" rx="8" fill="rgba(245,158,11,0.13)"/>
+  <text x="1058" y="323" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">13</text>
+  <rect x="1060" y="330" width="62" height="18" rx="4" fill="rgba(59,130,246,0.2)"/>
+  <text x="1066" y="343" font-family="Arial, sans-serif" font-size="10" font-weight="500" fill="#3b82f6">AD  Dr. Janssen</text>
+
+  <!-- Row 3: Zomervakantie period (14-20) with purple outline -->
+  <!-- ZO Jul 14 - weekend + period -->
+  <rect x="248" y="400" width="130" height="88" rx="8" fill="rgba(245,158,11,0.13)" stroke="rgba(99,102,241,0.35)" stroke-width="1.5"/>
+  <text x="254" y="415" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">14</text>
+  <rect x="256" y="474" width="130" height="3" rx="0" fill="rgba(99,102,241,0.5)"/>
+  <rect x="256" y="422" width="62" height="18" rx="4" fill="rgba(16,185,129,0.2)"/>
+  <text x="262" y="435" font-family="Arial, sans-serif" font-size="10" font-weight="500" fill="#10b981">LM  Dr. Martens</text>
+
+  <!-- MA Jul 15 - period, 2 slots -->
+  <rect x="382" y="400" width="130" height="88" rx="8" fill="#1f2937" stroke="rgba(99,102,241,0.35)" stroke-width="1.5"/>
+  <text x="404" y="415" font-family="Arial, sans-serif" font-size="9" font-weight="700" fill="#10b981">2/2</text>
+  <text x="388" y="415" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">15</text>
+  <rect x="382" y="474" width="130" height="3" rx="0" fill="rgba(99,102,241,0.5)"/>
+  <!-- 1e arts -->
+  <rect x="390" y="420" width="110" height="16" rx="4" fill="rgba(245,158,11,0.2)"/>
+  <text x="394" y="432" font-family="Arial, sans-serif" font-size="9" font-weight="700" fill="#f59e0b" opacity="0.7">1e </text>
+  <text x="406" y="432" font-family="Arial, sans-serif" font-size="9" font-weight="500" fill="#f59e0b">Dr. Peters</text>
+  <!-- 2e arts -->
+  <rect x="390" y="440" width="110" height="16" rx="4" fill="rgba(236,72,153,0.2)"/>
+  <text x="394" y="452" font-family="Arial, sans-serif" font-size="9" font-weight="700" fill="#ec4899" opacity="0.7">2e </text>
+  <text x="406" y="452" font-family="Arial, sans-serif" font-size="9" font-weight="500" fill="#ec4899">Dr. Vermee</text>
+
+  <!-- DI-VR Jul 16-19 - locked period cells -->
+  <rect x="516" y="400" width="130" height="88" rx="8" fill="#1f2937" opacity="0.75" stroke="rgba(99,102,241,0.35)" stroke-width="1.5"/>
+  <text x="522" y="415" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">16</text>
+  <text x="604" y="413" font-family="Arial, sans-serif" font-size="12">🔒</text>
+  <rect x="516" y="474" width="130" height="3" rx="0" fill="rgba(99,102,241,0.5)"/>
+  <rect x="524" y="422" width="62" height="16" rx="4" fill="rgba(59,130,246,0.2)"/>
+  <text x="530" y="434" font-family="Arial, sans-serif" font-size="9" font-weight="500" fill="#3b82f6">Dr. Janssen</text>
+  <text x="524" y="478" font-family="Arial, sans-serif" font-size="9" fill="#8b949e" opacity="0.6">Vergrendeld</text>
+
+  <rect x="650" y="400" width="130" height="88" rx="8" fill="#1f2937" stroke="rgba(99,102,241,0.35)" stroke-width="1.5"/>
+  <text x="656" y="415" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">17</text>
+  <rect x="650" y="474" width="130" height="3" rx="0" fill="rgba(99,102,241,0.5)"/>
+  <rect x="658" y="422" width="62" height="16" rx="4" fill="rgba(16,185,129,0.2)"/>
+  <text x="664" y="434" font-family="Arial, sans-serif" font-size="9" font-weight="500" fill="#10b981">Dr. Martens</text>
+
+  <rect x="784" y="400" width="130" height="88" rx="8" fill="#1f2937" stroke="rgba(99,102,241,0.35)" stroke-width="1.5"/>
+  <text x="790" y="415" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">18</text>
+  <rect x="784" y="474" width="130" height="3" rx="0" fill="rgba(99,102,241,0.5)"/>
+  <rect x="792" y="422" width="62" height="16" rx="4" fill="rgba(245,158,11,0.2)"/>
+  <text x="798" y="434" font-family="Arial, sans-serif" font-size="9" font-weight="500" fill="#f59e0b">Dr. Peters</text>
+
+  <rect x="918" y="400" width="130" height="88" rx="8" fill="#1f2937" stroke="rgba(99,102,241,0.35)" stroke-width="1.5"/>
+  <text x="924" y="415" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">19</text>
+  <rect x="918" y="474" width="130" height="3" rx="0" fill="rgba(99,102,241,0.5)"/>
+  <rect x="926" y="422" width="62" height="16" rx="4" fill="rgba(236,72,153,0.2)"/>
+  <text x="932" y="434" font-family="Arial, sans-serif" font-size="9" font-weight="500" fill="#ec4899">Dr. Vermee</text>
+
+  <!-- ZA Jul 20 - weekend + period -->
+  <rect x="1052" y="400" width="130" height="88" rx="8" fill="rgba(245,158,11,0.13)" stroke="rgba(99,102,241,0.35)" stroke-width="1.5"/>
+  <text x="1058" y="415" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">20</text>
+  <rect x="1052" y="474" width="130" height="3" rx="0" fill="rgba(99,102,241,0.5)"/>
+  <rect x="1060" y="422" width="62" height="16" rx="4" fill="rgba(59,130,246,0.2)"/>
+  <text x="1066" y="434" font-family="Arial, sans-serif" font-size="9" font-weight="500" fill="#3b82f6">Dr. Janssen</text>
+
+  <!-- Row 4 partial (21+) -->
+  <rect x="248" y="492" width="130" height="88" rx="8" fill="rgba(245,158,11,0.13)"/>
+  <text x="254" y="507" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">21</text>
+  <rect x="256" y="514" width="62" height="16" rx="4" fill="rgba(16,185,129,0.2)"/>
+  <text x="262" y="526" font-family="Arial, sans-serif" font-size="9" fill="#10b981">Dr. Martens</text>
+
+  <rect x="382" y="492" width="130" height="88" rx="8" fill="#1f2937"/>
+  <text x="388" y="507" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">22</text>
+  <!-- equity issue flag -->
+  <rect x="462" y="497" width="10" height="14" rx="2" fill="rgba(245,158,11,0.25)"/>
+  <text x="467" y="509" text-anchor="middle" font-family="Arial, sans-serif" font-size="8" font-weight="700" fill="#f59e0b">!</text>
+  <rect x="390" y="514" width="62" height="16" rx="4" fill="rgba(245,158,11,0.2)"/>
+  <text x="396" y="526" font-family="Arial, sans-serif" font-size="9" fill="#f59e0b">Dr. Peters</text>
+
+  <rect x="516" y="492" width="130" height="88" rx="8" fill="#1f2937"/>
+  <text x="522" y="507" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">23</text>
+  <rect x="524" y="514" width="62" height="16" rx="4" fill="rgba(236,72,153,0.2)"/>
+  <text x="530" y="526" font-family="Arial, sans-serif" font-size="9" fill="#ec4899">Dr. Vermee</text>
+
+  <rect x="650" y="492" width="130" height="88" rx="8" fill="#1f2937"/>
+  <text x="656" y="507" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">24</text>
+  <rect x="658" y="514" width="62" height="16" rx="4" fill="rgba(59,130,246,0.2)"/>
+  <text x="664" y="526" font-family="Arial, sans-serif" font-size="9" fill="#3b82f6">Dr. Janssen</text>
+
+  <rect x="784" y="492" width="130" height="88" rx="8" fill="#1f2937"/>
+  <text x="790" y="507" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">25</text>
+
+  <rect x="918" y="492" width="130" height="88" rx="8" fill="#1f2937"/>
+  <text x="924" y="507" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">26</text>
+
+  <rect x="1052" y="492" width="130" height="88" rx="8" fill="rgba(245,158,11,0.13)"/>
+  <text x="1058" y="507" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">27</text>
+  <rect x="1060" y="514" width="62" height="16" rx="4" fill="rgba(16,185,129,0.2)"/>
+  <text x="1066" y="526" font-family="Arial, sans-serif" font-size="9" fill="#10b981">Dr. Martens</text>
+
+  <!-- Row 5 partial -->
+  <rect x="248" y="584" width="130" height="88" rx="8" fill="rgba(245,158,11,0.13)"/>
+  <text x="254" y="599" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">28</text>
+  <rect x="382" y="584" width="130" height="88" rx="8" fill="#1f2937"/>
+  <text x="388" y="599" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">29</text>
+  <rect x="516" y="584" width="130" height="88" rx="8" fill="#1f2937"/>
+  <text x="522" y="599" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">30</text>
+  <rect x="650" y="584" width="130" height="88" rx="8" fill="#1f2937"/>
+  <text x="656" y="599" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e">31</text>
+  <rect x="784" y="584" width="130" height="88" rx="8" fill="#1f2937" opacity="0.3"/>
+  <text x="790" y="599" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e" opacity="0.4">1</text>
+  <rect x="918" y="584" width="130" height="88" rx="8" fill="#1f2937" opacity="0.3"/>
+  <text x="924" y="599" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e" opacity="0.4">2</text>
+  <rect x="1052" y="584" width="130" height="88" rx="8" fill="rgba(245,158,11,0.13)" opacity="0.3"/>
+  <text x="1058" y="599" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e" opacity="0.4">3</text>
+</svg>

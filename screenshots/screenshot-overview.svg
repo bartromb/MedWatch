@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+
+  <!-- Background -->
+  <rect width="1200" height="720" fill="#0d1117"/>
+
+  <!-- Browser chrome -->
+  <rect x="0" y="0" width="1200" height="32" fill="#161b22"/>
+  <rect x="0" y="31" width="1200" height="1" fill="#30363d"/>
+  <circle cx="20" cy="16" r="6" fill="#ef4444" opacity="0.7"/>
+  <circle cx="40" cy="16" r="6" fill="#f59e0b" opacity="0.7"/>
+  <circle cx="60" cy="16" r="6" fill="#10b981" opacity="0.7"/>
+  <rect x="120" y="6" width="560" height="20" rx="10" fill="#1f2937"/>
+  <text x="400" y="21" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#8b949e">medwatch/index.html</text>
+
+  <!-- Sidebar -->
+  <rect x="0" y="32" width="220" height="688" fill="#161b22"/>
+  <rect x="220" y="32" width="1" height="688" fill="#30363d"/>
+  <text x="20" y="72" font-family="Georgia, serif" font-size="20" font-weight="700" fill="#3b82f6">MedWatch</text>
+  <text x="20" y="88" font-family="Arial, sans-serif" font-size="10" fill="#8b949e">👨‍⚕️ Wachtplanning</text>
+  <line x1="0" y1="96" x2="220" y2="96" stroke="#30363d" stroke-width="1"/>
+  <text x="20" y="116" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#8b949e" letter-spacing="0.8">PLANNING</text>
+  <text x="22" y="140" font-family="Arial, sans-serif" font-size="13" fill="#8b949e">📅  Wachtplanning</text>
+  <!-- Active: Overzicht -->
+  <rect x="0" y="148" width="220" height="34" fill="rgba(59,130,246,0.08)"/>
+  <rect x="0" y="148" width="3" height="34" fill="#3b82f6"/>
+  <text x="22" y="170" font-family="Arial, sans-serif" font-size="13" fill="#3b82f6">📊  Overzicht</text>
+  <!-- problems badge -->
+  <rect x="172" y="155" width="18" height="16" rx="8" fill="rgba(239,68,68,0.15)"/>
+  <text x="181" y="167" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" font-weight="700" fill="#ef4444">2</text>
+  <text x="20" y="200" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#8b949e" letter-spacing="0.8">INSTELLINGEN</text>
+  <text x="22" y="222" font-family="Arial, sans-serif" font-size="13" fill="#8b949e">📆  Wachtperiodes</text>
+  <text x="22" y="250" font-family="Arial, sans-serif" font-size="13" fill="#8b949e">🔒  Vergrendelingen</text>
+  <text x="22" y="278" font-family="Arial, sans-serif" font-size="13" fill="#8b949e">🔴  Feestdagen</text>
+  <text x="22" y="306" font-family="Arial, sans-serif" font-size="13" fill="#8b949e">↩️  Overdracht</text>
+  <text x="22" y="334" font-family="Arial, sans-serif" font-size="13" fill="#8b949e">👨‍⚕️  Artsen</text>
+  <text x="22" y="362" font-family="Arial, sans-serif" font-size="13" fill="#8b949e">⚙️  Instellingen</text>
+  <!-- sidebar user -->
+  <line x1="0" y1="678" x2="220" y2="678" stroke="#30363d" stroke-width="1"/>
+  <circle cx="38" cy="700" r="14" fill="#3b82f633"/>
+  <text x="38" y="705" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#3b82f6">AD</text>
+  <text x="60" y="696" font-family="Arial, sans-serif" font-size="13" font-weight="600" fill="#e6edf3">Admin</text>
+
+  <!-- MAIN CONTENT -->
+  <text x="248" y="80" font-family="Georgia, serif" font-size="26" fill="#e6edf3">Verdeling Overzicht</text>
+  <text x="248" y="100" font-family="Arial, sans-serif" font-size="13" fill="#8b949e">Analyse van de wachtverdeling</text>
+  <rect x="1090" y="62" width="90" height="32" rx="8" fill="transparent" stroke="#30363d" stroke-width="1"/>
+  <text x="1135" y="83" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#e6edf3">📄 PDF</text>
+
+  <!-- Stat cards row -->
+  <!-- Card 1: Ingepland -->
+  <rect x="248" y="116" width="165" height="72" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="264" y="152" font-family="Georgia, serif" font-size="28" fill="#3b82f6">24</text>
+  <text x="264" y="170" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#8b949e" letter-spacing="0.3">INGEPLANDE DAGDIENSTEN</text>
+
+  <!-- Card 2: Open -->
+  <rect x="421" y="116" width="165" height="72" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="437" y="152" font-family="Georgia, serif" font-size="28" fill="#f59e0b">3</text>
+  <text x="437" y="170" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#8b949e" letter-spacing="0.3">OPEN DEZE MAAND</text>
+
+  <!-- Card 3: Evenredigheid -->
+  <rect x="594" y="116" width="165" height="72" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="610" y="152" font-family="Georgia, serif" font-size="28" fill="#10b981">84%</text>
+  <text x="610" y="170" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#8b949e" letter-spacing="0.3">EVENREDIGHEID</text>
+
+  <!-- Card 4: Consec weeks -->
+  <rect x="767" y="116" width="165" height="72" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="783" y="152" font-family="Georgia, serif" font-size="28" fill="#10b981">0</text>
+  <text x="783" y="170" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#8b949e" letter-spacing="0.3">CONSEC. WEKEN &gt; 1</text>
+
+  <!-- Card 5: Manuele -->
+  <rect x="940" y="116" width="165" height="72" rx="10" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+  <text x="956" y="152" font-family="Georgia, serif" font-size="28" fill="#a78bfa">2</text>
+  <text x="956" y="170" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#8b949e" letter-spacing="0.3">MANUELE AANPASSINGEN</text>
+
+  <!-- Problems panel -->
+  <rect x="248" y="204" width="940" height="72" rx="12" fill="#161b22" stroke="rgba(239,68,68,0.4)" stroke-width="2"/>
+  <text x="268" y="224" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#ef4444">⚠ 2 problemen gevonden</text>
+
+  <rect x="258" y="232" width="910" height="26" rx="7" fill="rgba(239,68,68,0.08)" stroke="rgba(239,68,68,0.2)" stroke-width="1"/>
+  <text x="274" y="249" font-family="Arial, sans-serif" font-size="12" fill="#fca5a5">⚖  Dr. Peters: 9 wachten (gem. 6.5) — verschil 3</text>
+
+  <rect x="258" y="261" width="910" height="4" rx="2" fill="rgba(245,158,11,0.08)" stroke="rgba(245,158,11,0.2)" stroke-width="1" display="none"/>
+
+  <!-- Distribution table -->
+  <rect x="248" y="288" width="940" height="380" rx="12" fill="#161b22" stroke="#30363d" stroke-width="1"/>
+
+  <!-- Table header row -->
+  <text x="264" y="314" font-family="Georgia, serif" font-size="16" fill="#e6edf3">Per arts</text>
+  <line x1="248" y1="324" x2="1188" y2="324" stroke="#30363d" stroke-width="1"/>
+
+  <!-- Column headers -->
+  <g font-family="Arial, sans-serif" font-size="11" font-weight="700" fill="#8b949e" letter-spacing="0.4">
+    <text x="264" y="345">ARTS</text>
+    <text x="500" y="345">TOTAAL</text>
+    <text x="580" y="345">+OVERDRACHT</text>
+    <text x="710" y="345">WEEKDAGEN</text>
+    <text x="820" y="345">WEEKENDS</text>
+    <text x="920" y="345">FEESTDAGEN</text>
+    <text x="1020" y="345">MAX CONSEC.</text>
+    <text x="1120" y="345">STATUS</text>
+  </g>
+  <line x1="248" y1="352" x2="1188" y2="352" stroke="#30363d" stroke-width="1"/>
+
+  <!-- Doctor rows -->
+  <!-- Row 1: Dr. Janssen -->
+  <circle cx="280" cy="375" r="13" fill="rgba(59,130,246,0.2)"/>
+  <text x="280" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#3b82f6">JA</text>
+  <text x="302" y="380" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">Dr. Janssen</text>
+  <text x="512" y="380" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#e6edf3">7</text>
+  <text x="590" y="380" font-family="Arial, sans-serif" font-size="12" fill="#3b82f6">+3 = 10</text>
+  <text x="730" y="380" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">5</text>
+  <text x="840" y="380" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">1</text>
+  <text x="940" y="380" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">1</text>
+  <text x="1040" y="380" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">1</text>
+  <rect x="1120" y="367" width="28" height="22" rx="4" fill="rgba(16,185,129,0.15)"/>
+  <text x="1134" y="382" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#10b981">✓</text>
+  <line x1="248" y1="394" x2="1188" y2="394" stroke="rgba(48,54,61,0.5)" stroke-width="1"/>
+
+  <!-- Row 2: Dr. Martens -->
+  <circle cx="280" cy="417" r="13" fill="rgba(16,185,129,0.2)"/>
+  <text x="280" y="422" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#10b981">MA</text>
+  <text x="302" y="422" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">Dr. Martens</text>
+  <text x="512" y="422" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#e6edf3">6</text>
+  <text x="590" y="422" font-family="Arial, sans-serif" font-size="12" fill="#8b949e">-</text>
+  <text x="730" y="422" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">4</text>
+  <text x="840" y="422" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">2</text>
+  <text x="940" y="422" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">0</text>
+  <text x="1040" y="422" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">1</text>
+  <rect x="1120" y="409" width="28" height="22" rx="4" fill="rgba(16,185,129,0.15)"/>
+  <text x="1134" y="424" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#10b981">✓</text>
+  <line x1="248" y1="436" x2="1188" y2="436" stroke="rgba(48,54,61,0.5)" stroke-width="1"/>
+
+  <!-- Row 3: Dr. Peters — problem row highlighted -->
+  <rect x="248" y="438" width="940" height="38" fill="rgba(239,68,68,0.04)"/>
+  <circle cx="280" cy="459" r="13" fill="rgba(245,158,11,0.2)"/>
+  <text x="280" y="464" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#f59e0b">PE</text>
+  <text x="302" y="464" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">Dr. Peters</text>
+  <text x="512" y="464" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#ef4444">9</text>
+  <text x="590" y="464" font-family="Arial, sans-serif" font-size="12" fill="#8b949e">-</text>
+  <text x="730" y="464" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">6</text>
+  <text x="840" y="464" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">2</text>
+  <text x="940" y="464" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">1</text>
+  <text x="1040" y="464" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">1</text>
+  <rect x="1120" y="451" width="28" height="22" rx="4" fill="rgba(239,68,68,0.15)"/>
+  <text x="1134" y="466" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#ef4444">!</text>
+  <line x1="248" y1="476" x2="1188" y2="476" stroke="rgba(48,54,61,0.5)" stroke-width="1"/>
+
+  <!-- Row 4: Dr. Vermee -->
+  <circle cx="280" cy="499" r="13" fill="rgba(236,72,153,0.2)"/>
+  <text x="280" y="504" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" font-weight="700" fill="#ec4899">VE</text>
+  <text x="302" y="504" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">Dr. Vermee</text>
+  <text x="512" y="504" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#e6edf3">5</text>
+  <text x="590" y="504" font-family="Arial, sans-serif" font-size="12" fill="#8b949e">-</text>
+  <text x="730" y="504" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">3</text>
+  <text x="840" y="504" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">1</text>
+  <text x="940" y="504" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">1</text>
+  <text x="1040" y="504" font-family="Arial, sans-serif" font-size="13" fill="#e6edf3">-</text>
+  <rect x="1120" y="491" width="28" height="22" rx="4" fill="rgba(245,158,11,0.15)"/>
+  <text x="1134" y="506" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#f59e0b">~</text>
+  <line x1="248" y1="518" x2="1188" y2="518" stroke="rgba(48,54,61,0.5)" stroke-width="1"/>
+
+  <!-- Equity bar at bottom of table -->
+  <rect x="264" y="570" width="900" height="50" rx="8" fill="rgba(59,130,246,0.04)" stroke="rgba(59,130,246,0.15)" stroke-width="1"/>
+  <text x="280" y="592" font-family="Arial, sans-serif" font-size="12" font-weight="700" fill="#8b949e">Evenredigheid actueel</text>
+  <rect x="440" y="583" width="500" height="8" rx="4" fill="#1f2937"/>
+  <rect x="440" y="583" width="420" height="8" rx="4" fill="#10b981"/>
+  <text x="950" y="592" font-family="Arial, sans-serif" font-size="13" font-weight="700" fill="#10b981">84%</text>
+  <text x="280" y="610" font-family="Arial, sans-serif" font-size="11" fill="#8b949e">Gemiddeld 6.75 wachten per arts · Dr. Peters heeft +2.25 boven gemiddelde</text>
+</svg>
