@@ -349,7 +349,7 @@ function buildRankMap(schedule, periods) {
 }
 
 // ─── AUTO SCHEDULE (enhanced) ─────────────────────────────────────────────────
-function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences, existing, periods, lockedRanges, carryOver={}, customH={}) {
+function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences, existing, periods, lockedRanges, carryOver={}, customH={}, distributeMode='equity') {
   const sched = {...existing};
   const dates = [];
   for(let d=new Date(startDate+'T00:00:00');d<=new Date(endDate+'T00:00:00');d.setDate(d.getDate()+1)) dates.push(fmt(d));
@@ -384,28 +384,38 @@ function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences
     if(needed===0) return;
     const notYet=eligible.filter(d=>!existingAssigned.includes(d.id));
     
-    // For each rank slot needed, prefer doctor already assigned to that rank this week
     const chosen = [];
     const remaining = [...notYet];
     for(let rankIdx=existingAssigned.length; rankIdx<slots && remaining.length>0; rankIdx++){
-      const wrkKey = period?`${curWk}:${period.id}:${rankIdx}`:null;
-      // If we have a preferred doc for this rank this week, prioritize them
-      const preferredForRank = wrkKey&&weekRankAssignment[wrkKey];
-      
-      const scored = remaining.map(doc=>{
-        let s=0;
-        if(t==='holiday') s-=hdC[doc.id]*3; else if(t==='weekend') s-=weC[doc.id]*2; else s-=wdC[doc.id];
-        if(prefs[doc.id]==='positive') s+=5; if(prefs[doc.id]==='negative') s-=10;
-        if(lastWk[doc.id]&&weeksConsecutive(lastWk[doc.id],curWk)) s-=100;
-        if(preferredForRank&&doc.id===preferredForRank) s+=50; // strongly prefer rank consistency
-        s+=Math.random()*0.4;
-        return {doc,s};
-      });
-      scored.sort((a,b)=>b.s-a.s);
-      const pick = scored[0].doc;
-      chosen.push(pick);
-      remaining.splice(remaining.findIndex(d=>d.id===pick.id),1);
-      if(wrkKey) weekRankAssignment[wrkKey]=pick.id;
+
+      if(distributeMode === 'random') {
+        // Pure random: shuffle remaining and pick first, ignoring equity
+        const idx = Math.floor(Math.random() * remaining.length);
+        const pick = remaining[idx];
+        chosen.push(pick);
+        remaining.splice(idx, 1);
+        // Still track rank for display purposes
+        const wrkKey = period?`${curWk}:${period.id}:${rankIdx}`:null;
+        if(wrkKey && !weekRankAssignment[wrkKey]) weekRankAssignment[wrkKey]=pick.id;
+      } else {
+        // Equity mode: weighted scoring favouring evenness and consecutive-week avoidance
+        const wrkKey = period?`${curWk}:${period.id}:${rankIdx}`:null;
+        const preferredForRank = wrkKey&&weekRankAssignment[wrkKey];
+        const scored = remaining.map(doc=>{
+          let s=0;
+          if(t==='holiday') s-=hdC[doc.id]*3; else if(t==='weekend') s-=weC[doc.id]*2; else s-=wdC[doc.id];
+          if(prefs[doc.id]==='positive') s+=5; if(prefs[doc.id]==='negative') s-=10;
+          if(lastWk[doc.id]&&weeksConsecutive(lastWk[doc.id],curWk)) s-=100;
+          if(preferredForRank&&doc.id===preferredForRank) s+=50;
+          s+=Math.random()*0.4; // small tiebreaker noise
+          return {doc,s};
+        });
+        scored.sort((a,b)=>b.s-a.s);
+        const pick = scored[0].doc;
+        chosen.push(pick);
+        remaining.splice(remaining.findIndex(d=>d.id===pick.id),1);
+        if(wrkKey) weekRankAssignment[wrkKey]=pick.id;
+      }
     }
     
     sched[date]=[...existingAssigned,...chosen.map(d=>d.id)];
@@ -809,6 +819,23 @@ function PreferencesPage({doctors,preferences,setPreferences,currentUser,customH
   function countY(docId,yr){ let pos=0,neg=0; Object.entries(preferences).forEach(([d,ps])=>{if(new Date(d+'T00:00:00').getFullYear()===yr&&ps[docId]){if(ps[docId]==='positive') pos++; else neg++;}}); return {pos,neg}; }
   function countM(docId,yr,mo){ let pos=0,neg=0; Object.entries(preferences).forEach(([d,ps])=>{const dt=new Date(d+'T00:00:00');if(dt.getFullYear()===yr&&dt.getMonth()===mo&&ps[docId]){if(ps[docId]==='positive') pos++; else neg++;}}); return {pos,neg}; }
   function clearYear(docId){ setPreferences(p=>{const np={...p}; Object.keys(np).forEach(d=>{if(new Date(d+'T00:00:00').getFullYear()===prefYear&&np[d]?.[docId]){np[d]={...np[d]};delete np[d][docId];}}); return np;}); }
+
+  // Set all days in a month to a given preference value (null = clear)
+  function setMonthDefault(docId, yr, mo, value){
+    const days = getDaysInMonth(yr, mo);
+    setPreferences(p=>{
+      const np = {...p};
+      days.filter(d=>d.current).forEach(({date})=>{
+        if(value===null){
+          if(np[date]?.[docId]){ np[date]={...np[date]}; delete np[date][docId]; }
+        } else {
+          np[date]={...(np[date]||{}), [docId]: value};
+        }
+      });
+      return np;
+    });
+  }
+
   return (
     <div className="fade-in">
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
@@ -866,10 +893,43 @@ function PreferencesPage({doctors,preferences,setPreferences,currentUser,customH
           <div className="months-yr-grid" style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:12}}>
             {Array.from({length:12},(_,mo)=>{
               const {pos,neg}=countM(selectedDoc.id,prefYear,mo);
+              // Determine current month state for the toggle button
+              const daysInMo = getDaysInMonth(prefYear, mo).filter(d=>d.current);
+              const allPos = daysInMo.length>0 && daysInMo.every(({date})=>(preferences[date]||{})[selectedDoc.id]==='positive');
+              const allNeg = daysInMo.length>0 && daysInMo.every(({date})=>(preferences[date]||{})[selectedDoc.id]==='negative');
               return <div key={mo} style={{background:'var(--surface)',border:'1px solid var(--border)',borderRadius:12,padding:14}}>
-                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:8}}>
+                <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6}}>
                   <span style={{fontFamily:"'DM Serif Display',serif",fontSize:13}}>{MONTHS[mo]}</span>
-                  <div style={{display:'flex',gap:4}}>{pos>0&&<span style={{fontSize:10,color:'var(--positive)',fontWeight:700}}>✓{pos}</span>}{neg>0&&<span style={{fontSize:10,color:'var(--negative)',fontWeight:700}}>✕{neg}</span>}</div>
+                  <div style={{display:'flex',gap:4}}>
+                    {pos>0&&<span style={{fontSize:10,color:'var(--positive)',fontWeight:700}}>✓{pos}</span>}
+                    {neg>0&&<span style={{fontSize:10,color:'var(--negative)',fontWeight:700}}>✕{neg}</span>}
+                  </div>
+                </div>
+                {/* Month bulk toggle buttons */}
+                <div style={{display:'flex',gap:3,marginBottom:8}}>
+                  <button
+                    onClick={()=>setMonthDefault(selectedDoc.id, prefYear, mo, allPos?null:'positive')}
+                    title={allPos?'Positief wissen':'Hele maand positief'}
+                    style={{flex:1,padding:'3px 0',borderRadius:5,border:`1px solid ${allPos?'rgba(16,185,129,0.8)':'rgba(16,185,129,0.3)'}`,
+                      background:allPos?'rgba(16,185,129,0.3)':'rgba(16,185,129,0.08)',
+                      color:'var(--positive)',fontSize:11,cursor:'pointer',fontWeight:700,transition:'all 0.15s'}}>
+                    {allPos?'✓ wissen':'✓ alles'}
+                  </button>
+                  <button
+                    onClick={()=>setMonthDefault(selectedDoc.id, prefYear, mo, allNeg?null:'negative')}
+                    title={allNeg?'Negatief wissen':'Hele maand negatief'}
+                    style={{flex:1,padding:'3px 0',borderRadius:5,border:`1px solid ${allNeg?'rgba(239,68,68,0.8)':'rgba(239,68,68,0.3)'}`,
+                      background:allNeg?'rgba(239,68,68,0.3)':'rgba(239,68,68,0.08)',
+                      color:'var(--negative)',fontSize:11,cursor:'pointer',fontWeight:700,transition:'all 0.15s'}}>
+                    {allNeg?'✕ wissen':'✕ alles'}
+                  </button>
+                  {(pos>0||neg>0)&&<button
+                    onClick={()=>setMonthDefault(selectedDoc.id, prefYear, mo, null)}
+                    title="Maand wissen"
+                    style={{padding:'3px 6px',borderRadius:5,border:'1px solid var(--border)',
+                      background:'transparent',color:'var(--muted)',fontSize:11,cursor:'pointer',transition:'all 0.15s'}}>
+                    🗑
+                  </button>}
                 </div>
                 <MiniMonthGrid year={prefYear} monthIdx={mo} docId={selectedDoc.id} preferences={preferences} setPreferences={setPreferences} customH={customH}/>
               </div>;
@@ -1242,6 +1302,7 @@ function App(){
   const [planStart,setPlanStart]=useState('');
   const [planEnd,setPlanEnd]=useState('');
   const [planDocs,setPlanDocs]=useState([]);
+  const [distributeMode,setDistributeMode]=useState('equity'); // 'equity' | 'random'
   const [suggestions,setSuggestions]=useState(null);
   const [showProblems,setShowProblems]=useState(false);
   const [pdfModal,setPdfModal]=useState(false);
@@ -1280,7 +1341,7 @@ function App(){
       const ds=fmt(d); const p=getPeriodForDate(ds,periods);
       if(p?.eligibleDocs) periodDoctors[ds]=activeDocs.filter(doc=>p.eligibleDocs.includes(doc.id));
     }
-    setSchedule(autoSchedule(planStart,planEnd,activeDocs,periodDoctors,preferences,schedule,periods,lockedRanges,carryOver,customHolidays));
+    setSchedule(autoSchedule(planStart,planEnd,activeDocs,periodDoctors,preferences,schedule,periods,lockedRanges,carryOver,customHolidays,distributeMode));
     setModal(null); setSuggestions(null);
   }
 
@@ -1703,7 +1764,31 @@ function App(){
           </div>
           {Object.values(carryOver).some(c=>c.total>0)&&<div className="alert alert-info">↩ Overdracht actief — wordt meegenomen in evenredige verdeling.</div>}
           {lockedRanges.length>0&&<div className="alert alert-warn">🔒 {lockedRanges.length} vergrendelde periode(s) worden overgeslagen.</div>}
-          <div className="alert alert-info" style={{marginTop:0}}>✓ Max. 1 aaneengesloten week · Evenredige verdeling · Rang-consistentie per week · Voorkeuren gerespecteerd</div>
+
+          {/* Distribution mode */}
+          <div className="form-group" style={{marginBottom:12}}>
+            <label className="form-label">Verdeelmodus</label>
+            <div style={{display:'flex',gap:8,marginTop:4}}>
+              <div onClick={()=>setDistributeMode('equity')}
+                style={{flex:1,padding:'10px 14px',borderRadius:10,cursor:'pointer',border:`2px solid ${distributeMode==='equity'?'var(--accent)':'var(--border)'}`,
+                  background:distributeMode==='equity'?'rgba(59,130,246,0.1)':'var(--surface2)',transition:'all 0.15s'}}>
+                <div style={{fontWeight:700,fontSize:13,color:distributeMode==='equity'?'var(--accent)':'var(--text)',marginBottom:3}}>⚖ Evenredig</div>
+                <div style={{fontSize:11,color:'var(--muted)',lineHeight:1.4}}>Zo eerlijk mogelijk verdeeld. Houdt rekening met dagtype, opeenvolgende weken, overdrachtscijfers en voorkeuren.</div>
+              </div>
+              <div onClick={()=>setDistributeMode('random')}
+                style={{flex:1,padding:'10px 14px',borderRadius:10,cursor:'pointer',border:`2px solid ${distributeMode==='random'?'var(--warn)':'var(--border)'}`,
+                  background:distributeMode==='random'?'rgba(245,158,11,0.1)':'var(--surface2)',transition:'all 0.15s'}}>
+                <div style={{fontWeight:700,fontSize:13,color:distributeMode==='random'?'var(--warn)':'var(--text)',marginBottom:3}}>🎲 Willekeurig</div>
+                <div style={{fontSize:11,color:'var(--muted)',lineHeight:1.4}}>Volledig at random. Geen rekening met aantallen of voorkeuren — elke combinatie even waarschijnlijk.</div>
+              </div>
+            </div>
+          </div>
+
+          <div className="alert alert-info" style={{marginTop:0}}>
+            {distributeMode==='equity'
+              ? '✓ Max. 1 aaneengesloten week · Evenredige verdeling · Rang-consistentie per week · Voorkeuren gerespecteerd'
+              : '🎲 Volledig willekeurige toewijzing — geen evenredigheid, geen voorkeurscontrole'}
+          </div>
           <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:8}}>
             <button className="btn btn-outline" onClick={()=>setModal(null)}>Annuleer</button>
             <button className="btn btn-success" onClick={runAutoSchedule} disabled={!planStart||!planEnd}>✓ Inplannen</button>
