@@ -353,7 +353,8 @@ function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences
   const sched = {...existing};
   const dates = [];
   for(let d=new Date(startDate+'T00:00:00');d<=new Date(endDate+'T00:00:00');d.setDate(d.getDate()+1)) dates.push(fmt(d));
-  
+
+  // ── running counters (seeded from carry-over + existing schedule) ──
   const cnt={}, wdC={}, weC={}, hdC={};
   allDoctors.forEach(d=>{
     cnt[d.id]=carryOver[d.id]?.total||0;
@@ -362,65 +363,133 @@ function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences
     hdC[d.id]=carryOver[d.id]?.holiday||0;
   });
   Object.entries(sched).forEach(([date,ids])=>{
-    ids.forEach(id=>{if(cnt[id]===undefined) return; cnt[id]++;
+    ids.forEach(id=>{ if(cnt[id]===undefined) return; cnt[id]++;
       const t=getDayType(date,customH);
-      if(t==='holiday') hdC[id]++; else if(t==='weekend') weC[id]++; else wdC[id]++;});
+      if(t==='holiday') hdC[id]++; else if(t==='weekend') weC[id]++; else wdC[id]++; });
   });
-  const lastWk={};
-  allDoctors.forEach(d=>{lastWk[d.id]=null;});
-  Object.entries(sched).sort().forEach(([date,ids])=>{ids.forEach(id=>{if(lastWk[id]!==undefined) lastWk[id]=getISOWeek(date);});});
 
-  // For rank consistency: track which doc had which rank in a week:period
-  const weekRankAssignment = {}; // 'YYYY-WNN:periodId:rankIdx' -> docId
+  // ── last-week tracker (for consecutive-week detection in equity mode) ──
+  const lastWk={};
+  allDoctors.forEach(d=>{ lastWk[d.id]=null; });
+  Object.entries(sched).sort().forEach(([date,ids])=>{
+    ids.forEach(id=>{ if(lastWk[id]!==undefined) lastWk[id]=getISOWeek(date); });
+  });
+
+  // ── week assignment tracker (for per-week bundling in equity mode) ──
+  // weekAssigned[docId][isoWeek] = number of days already assigned this week
+  const weekAssigned = {};
+  allDoctors.forEach(d=>{ weekAssigned[d.id]={}; });
+  Object.entries(sched).sort().forEach(([date,ids])=>{
+    const wk=getISOWeek(date);
+    ids.forEach(id=>{ if(weekAssigned[id]) weekAssigned[id][wk]=(weekAssigned[id][wk]||0)+1; });
+  });
+
+  // ── rank consistency tracker (equity mode, for multi-slot periods) ──
+  const weekRankAssignment = {}; // `${isoWeek}:${periodId}:${rankIdx}` -> docId
 
   dates.forEach(date=>{
     if(isDateLocked(date, lockedRanges)) return;
-    const slots=getSlotsForDate(date,periods);
-    const prefs=preferences[date]||{}; const t=getDayType(date,customH); const curWk=getISOWeek(date);
-    const period=getPeriodForDate(date,periods);
-    const eligible=(periodDoctors[date]||allDoctors);
-    const existingAssigned=(sched[date]||[]);
-    const needed=Math.max(0,slots-existingAssigned.length);
+    const slots    = getSlotsForDate(date, periods);
+    const prefs    = preferences[date]||{};
+    const t        = getDayType(date, customH);
+    const curWk    = getISOWeek(date);
+    const period   = getPeriodForDate(date, periods);
+    const existing = sched[date]||[];
+    const needed   = Math.max(0, slots - existing.length);
     if(needed===0) return;
-    const notYet=eligible.filter(d=>!existingAssigned.includes(d.id));
-    
-    const chosen = [];
-    const remaining = [...notYet];
-    for(let rankIdx=existingAssigned.length; rankIdx<slots && remaining.length>0; rankIdx++){
 
-      if(distributeMode === 'random') {
-        // Pure random: shuffle remaining and pick first, ignoring equity
-        const idx = Math.floor(Math.random() * remaining.length);
-        const pick = remaining[idx];
-        chosen.push(pick);
-        remaining.splice(idx, 1);
-        // Still track rank for display purposes
-        const wrkKey = period?`${curWk}:${period.id}:${rankIdx}`:null;
-        if(wrkKey && !weekRankAssignment[wrkKey]) weekRankAssignment[wrkKey]=pick.id;
-      } else {
-        // Equity mode: weighted scoring favouring evenness and consecutive-week avoidance
-        const wrkKey = period?`${curWk}:${period.id}:${rankIdx}`:null;
-        const preferredForRank = wrkKey&&weekRankAssignment[wrkKey];
+    const eligible  = periodDoctors[date]||allDoctors;
+    const notYet    = eligible.filter(d=>!existing.includes(d.id));
+    const chosen    = [];
+    const remaining = [...notYet];
+
+    for(let rankIdx=existing.length; rankIdx<slots && remaining.length>0; rankIdx++){
+      const wrkKey = period ? `${curWk}:${period.id}:${rankIdx}` : null;
+
+      if(distributeMode==='equity'){
+        // ── EQUITY: bundle per week, fair totals, respect preferences ──
+        const preferredForRank = wrkKey && weekRankAssignment[wrkKey];
         const scored = remaining.map(doc=>{
-          let s=0;
-          if(t==='holiday') s-=hdC[doc.id]*3; else if(t==='weekend') s-=weC[doc.id]*2; else s-=wdC[doc.id];
-          if(prefs[doc.id]==='positive') s+=5; if(prefs[doc.id]==='negative') s-=10;
-          if(lastWk[doc.id]&&weeksConsecutive(lastWk[doc.id],curWk)) s-=100;
-          if(preferredForRank&&doc.id===preferredForRank) s+=50;
-          s+=Math.random()*0.4; // small tiebreaker noise
-          return {doc,s};
+          let s = 0;
+
+          // 1. Day-type equity (prefer those with fewest of this type)
+          if(t==='holiday')     s -= hdC[doc.id]*3;
+          else if(t==='weekend') s -= weC[doc.id]*2;
+          else                   s -= wdC[doc.id];
+
+          // 2. Preferences
+          if(prefs[doc.id]==='positive') s += 5;
+          if(prefs[doc.id]==='negative') s -= 10;
+
+          // 3. Consecutive-week penalty (avoid back-to-back weeks)
+          if(lastWk[doc.id] && weeksConsecutive(lastWk[doc.id], curWk)) s -= 100;
+
+          // 4. Per-week bundling bonus: strongly prefer someone already
+          //    assigned earlier THIS week (same person keeps the week)
+          const alreadyThisWeek = weekAssigned[doc.id]?.[curWk]||0;
+          s += alreadyThisWeek * 40; // +40 per day already in this week
+
+          // 5. Rank consistency bonus (same rank within week:period)
+          if(preferredForRank && doc.id===preferredForRank) s += 50;
+
+          // 6. Small noise to break exact ties
+          s += Math.random()*0.4;
+          return {doc, s};
         });
         scored.sort((a,b)=>b.s-a.s);
         const pick = scored[0].doc;
         chosen.push(pick);
         remaining.splice(remaining.findIndex(d=>d.id===pick.id),1);
         if(wrkKey) weekRankAssignment[wrkKey]=pick.id;
+
+      } else {
+        // ── RANDOM: spread across individual days, fair totals, preferences ──
+        // No week-bundling, no consecutive-week penalty.
+        // Still uses equity + preference scoring so distribution stays fair,
+        // but adds heavy noise so the result feels random and days are spread.
+        const scored = remaining.map(doc=>{
+          let s = 0;
+
+          // 1. Day-type equity (same weights as equity mode)
+          if(t==='holiday')     s -= hdC[doc.id]*3;
+          else if(t==='weekend') s -= weC[doc.id]*2;
+          else                   s -= wdC[doc.id];
+
+          // 2. Preferences (still respected)
+          if(prefs[doc.id]==='positive') s += 5;
+          if(prefs[doc.id]==='negative') s -= 10;
+
+          // 3. Bonus for people with very few assignments (prevents starvation)
+          //    Especially important when someone can only do 1-2 days in a period
+          const totalAssigned = cnt[doc.id]||0;
+          const allTotals = allDoctors.map(d=>cnt[d.id]||0);
+          const avg = allTotals.reduce((a,b)=>a+b,0)/Math.max(1,allDoctors.length);
+          if(totalAssigned < avg - 1) s += (avg - totalAssigned) * 3; // catch-up bonus
+
+          // 4. Large random noise: dominates over small equity differences,
+          //    producing a visually spread/random result while still keeping
+          //    the distribution roughly fair thanks to the equity base score
+          s += (Math.random()-0.5)*8;
+
+          return {doc, s};
+        });
+        scored.sort((a,b)=>b.s-a.s);
+        const pick = scored[0].doc;
+        chosen.push(pick);
+        remaining.splice(remaining.findIndex(d=>d.id===pick.id),1);
+        if(wrkKey && !weekRankAssignment[wrkKey]) weekRankAssignment[wrkKey]=pick.id;
       }
     }
-    
-    sched[date]=[...existingAssigned,...chosen.map(d=>d.id)];
-    chosen.forEach(doc=>{ cnt[doc.id]++; lastWk[doc.id]=curWk;
-      if(t==='holiday') hdC[doc.id]++; else if(t==='weekend') weC[doc.id]++; else wdC[doc.id]++;});
+
+    sched[date] = [...existing, ...chosen.map(d=>d.id)];
+    chosen.forEach(doc=>{
+      cnt[doc.id]++;
+      lastWk[doc.id]=curWk;
+      weekAssigned[doc.id][curWk]=(weekAssigned[doc.id][curWk]||0)+1;
+      if(t==='holiday')     hdC[doc.id]++;
+      else if(t==='weekend') weC[doc.id]++;
+      else                   wdC[doc.id]++;
+    });
   });
   return sched;
 }
@@ -1772,22 +1841,22 @@ function App(){
               <div onClick={()=>setDistributeMode('equity')}
                 style={{flex:1,padding:'10px 14px',borderRadius:10,cursor:'pointer',border:`2px solid ${distributeMode==='equity'?'var(--accent)':'var(--border)'}`,
                   background:distributeMode==='equity'?'rgba(59,130,246,0.1)':'var(--surface2)',transition:'all 0.15s'}}>
-                <div style={{fontWeight:700,fontSize:13,color:distributeMode==='equity'?'var(--accent)':'var(--text)',marginBottom:3}}>⚖ Evenredig</div>
-                <div style={{fontSize:11,color:'var(--muted)',lineHeight:1.4}}>Zo eerlijk mogelijk verdeeld. Houdt rekening met dagtype, opeenvolgende weken, overdrachtscijfers en voorkeuren.</div>
+                <div style={{fontWeight:700,fontSize:13,color:distributeMode==='equity'?'var(--accent)':'var(--text)',marginBottom:3}}>⚖ Evenredig — per week</div>
+                <div style={{fontSize:11,color:'var(--muted)',lineHeight:1.4}}>Zoveel mogelijk dezelfde persoon een volledige week. Eerlijk verdeeld over dagtype en periode. Voorkeuren gerespecteerd. Geen opeenvolgende weken.</div>
               </div>
               <div onClick={()=>setDistributeMode('random')}
                 style={{flex:1,padding:'10px 14px',borderRadius:10,cursor:'pointer',border:`2px solid ${distributeMode==='random'?'var(--warn)':'var(--border)'}`,
                   background:distributeMode==='random'?'rgba(245,158,11,0.1)':'var(--surface2)',transition:'all 0.15s'}}>
-                <div style={{fontWeight:700,fontSize:13,color:distributeMode==='random'?'var(--warn)':'var(--text)',marginBottom:3}}>🎲 Willekeurig</div>
-                <div style={{fontSize:11,color:'var(--muted)',lineHeight:1.4}}>Volledig at random. Geen rekening met aantallen of voorkeuren — elke combinatie even waarschijnlijk.</div>
+                <div style={{fontWeight:700,fontSize:13,color:distributeMode==='random'?'var(--warn)':'var(--text)',marginBottom:3}}>🎲 Willekeurig — gespreid</div>
+                <div style={{fontSize:11,color:'var(--muted)',lineHeight:1.4}}>Losse dagen at random, niet gebundeld per week. Wél eerlijk verdeeld en voorkeuren gerespecteerd. Wie weinig beschikbaar is krijgt voorrang voor die dagen.</div>
               </div>
             </div>
           </div>
 
           <div className="alert alert-info" style={{marginTop:0}}>
             {distributeMode==='equity'
-              ? '✓ Max. 1 aaneengesloten week · Evenredige verdeling · Rang-consistentie per week · Voorkeuren gerespecteerd'
-              : '🎲 Volledig willekeurige toewijzing — geen evenredigheid, geen voorkeurscontrole'}
+              ? '✓ Per-week bundeling · Geen opeenvolgende weken · Evenredige verdeling · Voorkeuren gerespecteerd'
+              : '🎲 Gespreid over losse dagen · Eerlijk verdeeld · Voorkeuren gerespecteerd · Wie weinig kan krijgt voorrang'}
           </div>
           <div style={{display:'flex',gap:8,justifyContent:'flex-end',marginTop:8}}>
             <button className="btn btn-outline" onClick={()=>setModal(null)}>Annuleer</button>

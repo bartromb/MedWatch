@@ -82,8 +82,8 @@ Bij het starten van auto-inplannen kies je een verdeelmodus:
 
 | Modus | Werking |
 |-------|---------|
-| **⚖ Evenredig** *(standaard)* | Houdt rekening met dagtype (feestdag ×3, weekend ×2, weekdag ×1), opeenvolgende weken (−100 straf), overdrachtscijfers, individuele voorkeuren (+5/−10) en rang-consistentie per week (+50 bonus). Streeft naar een zo eerlijk mogelijke verdeling. |
-| **🎲 Willekeurig** | Volledig at random — elke combinatie is even waarschijnlijk, geen heuristieken, geen equity-controle. Handig voor lotingen of als bewust voor toeval gekozen wordt. |
+| **⚖ Evenredig — per week** *(standaard)* | Zoveel mogelijk dezelfde persoon een volledige week (+40 bonus per dag reeds in die week). Eerlijk verdeeld per dagtype, geen opeenvolgende weken (−100 straf), voorkeuren (+5/−10), rang-consistentie (+50). |
+| **🎲 Willekeurig — gespreid** | Losse dagen at random over de periode, niet per week gebundeld. Wél eerlijk verdeeld en voorkeuren gerespecteerd. Wie weinig beschikbaar is (weinig positieve of veel negatieve dagen) krijgt voorrang voor die dagen. |
 
 #### <a name="probleemdetectie-nl"></a>Probleemdetectie & oplossingsvoorstellen
 
@@ -183,8 +183,8 @@ When starting auto-schedule, choose a distribution mode:
 
 | Mode | Behaviour |
 |------|-----------|
-| **⚖ Equity** *(default)* | Weighted scoring: day type (holiday ×3, weekend ×2, weekday ×1), consecutive week penalty (−100), carry-over counts, individual preferences (+5/−10), rank affinity bonus (+50). Aims for the fairest possible distribution. |
-| **🎲 Random** | Fully random — every combination is equally likely, no heuristics, no equity check. Useful for draws or when randomness is deliberately preferred. |
+| **⚖ Equity — per week** *(default)* | Same person keeps the full week where possible (+40 per day already in that week). Fair distribution per day type, no consecutive weeks (−100 penalty), preferences (+5/−10), rank affinity (+50). |
+| **🎲 Random — spread** | Individual days assigned at random across the period, not bundled per week. Still fair (equity scoring) and preferences still respected. Staff with limited availability (few positive / many negative days) get priority for those days. |
 
 #### <a name="problem-detection-en"></a>Problem detection & fix suggestions
 
