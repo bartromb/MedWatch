@@ -498,64 +498,146 @@ function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences
     });
   });
 
-  // ── POST-PROCESSING: rebalance to improve equity ──────────────────────────
-  // Repeatedly find the most over-scheduled and most under-scheduled doctor,
-  // then try to swap one of the over-scheduled doctor's dates to the under-
-  // scheduled one — provided:
-  //   • the date is not locked
-  //   • the under-scheduled doctor has no negative preference on that date
-  //   • the under-scheduled doctor is eligible for that date's period
-  //   • the slot is not already taken by the under-scheduled doctor
-  // We run up to 200 swap attempts or until the max gap ≤ 1.
+  // ── POST-PROCESSING: target-based rebalancing ─────────────────────────────
+  //
+  // Goal: everyone ends up with their fair share, taking into account:
+  //   • Hard constraint: no negative preferences violated
+  //   • Soft preference: swap onto positive-preference dates first
+  //   • If someone has few positive days → they get those days preferentially,
+  //     but their TOTAL count is still equal to everyone else (unless their
+  //     positive+neutral days are simply too few to reach the target)
+  //
+  // Algorithm:
+  //   1. Compute fair target = floor(totalShifts / nDoctors), some get ceil
+  //   2. Repeat up to 500 times:
+  //        - Find all (over, under) pairs where over > target and under < target
+  //        - For each pair, find all swappable dates (over assigned, under not,
+  //          not locked, under not negative on that date, under eligible)
+  //        - Score each candidate swap: prefer positive-preference dates for under,
+  //          prefer dates where over is furthest above target
+  //        - Execute the best scoring swap
+  //        - Stop when no valid swap exists or all are within ±1 of target
 
-  const MAX_PASSES = 200;
-  for(let pass=0; pass<MAX_PASSES; pass++){
-    // Recompute totals from sched (excluding carry-over so we only balance new assignments)
-    const totals = {};
-    allDoctors.forEach(d=>{ totals[d.id] = 0; });
-    Object.entries(sched).forEach(([date,ids])=>{
-      // Only count dates in our planning range
-      if(date < startDate || date > endDate) return;
-      ids.forEach(id=>{ if(totals[id]!==undefined) totals[id]++; });
-    });
+  function rebalance(sched){
+    const planDates = [];
+    for(let d=new Date(startDate+'T00:00:00');d<=new Date(endDate+'T00:00:00');d.setDate(d.getDate()+1))
+      planDates.push(fmt(d));
 
-    const sorted = [...allDoctors].sort((a,b)=>totals[a.id]-totals[b.id]);
-    const under  = sorted[0];
-    const over   = sorted[sorted.length-1];
-    if(totals[over.id] - totals[under.id] <= 1) break; // good enough
+    // Helper: count assignments in plan range
+    function getCounts(){
+      const c={};
+      allDoctors.forEach(d=>{ c[d.id]=0; });
+      planDates.forEach(date=>{
+        (sched[date]||[]).forEach(id=>{ if(c[id]!==undefined) c[id]++; });
+      });
+      return c;
+    }
 
-    // Find a date where 'over' is assigned that 'under' can take
-    const swappable = Object.entries(sched)
-      .filter(([date, ids])=>{
-        if(date < startDate || date > endDate) return false;
-        if(!ids.includes(over.id)) return false;
-        if(ids.includes(under.id)) return false;               // under already on this date
-        if(isDateLocked(date, lockedRanges)) return false;
-        if((preferences[date]||{})[under.id]==='negative') return false; // hard block
-        // Check under is eligible for this date's period
-        const p = getPeriodForDate(date, periods);
-        if(p?.eligibleDocs && !p.eligibleDocs.includes(under.id)) return false;
-        return true;
-      })
-      .map(([date])=>date);
+    // Compute how many days each doctor CAN work (not locked, not negative, eligible)
+    function getCapacity(){
+      const cap={};
+      allDoctors.forEach(doc=>{
+        cap[doc.id]=0;
+        planDates.forEach(date=>{
+          if(isDateLocked(date,lockedRanges)) return;
+          if((preferences[date]||{})[doc.id]==='negative') return;
+          const slots=getSlotsForDate(date,periods);
+          if(!slots) return;
+          const p=getPeriodForDate(date,periods);
+          if(p?.eligibleDocs && !p.eligibleDocs.includes(doc.id)) return;
+          // Only count if there's actually a slot this person could occupy
+          // (don't count if all slots on this date are already taken by others)
+          cap[doc.id]++;
+        });
+      });
+      return cap;
+    }
 
-    if(!swappable.length) break; // no valid swap possible
+    const capacity = getCapacity();
 
-    // Pick the swap date where the difference in day-type counts is largest
-    // (prioritise giving under-scheduled person weekend/holiday swaps when they need them)
-    swappable.sort((a,b)=>{
-      const ta=getDayType(a,customH), tb=getDayType(b,customH);
-      const wa=ta==='holiday'?3:ta==='weekend'?2:1;
-      const wb=tb==='holiday'?3:tb==='weekend'?2:1;
-      return wb-wa;
-    });
-    const swapDate = swappable[0];
+    // Compute fair target per doctor, capped by their capacity
+    function computeTargets(counts){
+      const total = Object.values(counts).reduce((a,b)=>a+b,0);
+      const n = allDoctors.length;
+      const base = Math.floor(total/n);
+      const extra = total - base*n; // this many doctors get base+1
 
-    // Execute swap: replace over with under on that date
-    sched[swapDate] = sched[swapDate].map(id=>id===over.id ? under.id : id);
+      // Sort by capacity descending: doctors with more capacity absorb the extra
+      const sorted = [...allDoctors].sort((a,b)=>capacity[b.id]-capacity[a.id]);
+      const targets={};
+      sorted.forEach((doc,i)=>{
+        const ideal = i < extra ? base+1 : base;
+        targets[doc.id] = Math.min(ideal, capacity[doc.id]);
+      });
+      // Redistribute any unassignable quota to those who have capacity
+      const assigned = Object.values(targets).reduce((a,b)=>a+b,0);
+      let remainder = total - assigned;
+      if(remainder > 0){
+        for(const doc of sorted){
+          if(remainder<=0) break;
+          const slack = capacity[doc.id] - targets[doc.id];
+          const give = Math.min(slack, remainder);
+          targets[doc.id] += give;
+          remainder -= give;
+        }
+      }
+      return targets;
+    }
+
+    const MAX_SWAPS = 500;
+    for(let pass=0; pass<MAX_SWAPS; pass++){
+      const counts  = getCounts();
+      const targets = computeTargets(counts);
+
+      // Find all over-doctors and under-doctors
+      const overDocs  = allDoctors.filter(d=>counts[d.id]  > targets[d.id]);
+      const underDocs = allDoctors.filter(d=>counts[d.id]  < targets[d.id]);
+      if(!overDocs.length || !underDocs.length) break;
+
+      // Find the best swap across all over/under pairs
+      let bestSwap = null; // {date, over, under, score}
+
+      for(const over of overDocs){
+        for(const under of underDocs){
+          // Find dates where over is assigned, under can take over
+          planDates.forEach(date=>{
+            const ids = sched[date]||[];
+            if(!ids.includes(over.id)) return;
+            if(ids.includes(under.id)) return;           // already there
+            if(isDateLocked(date,lockedRanges)) return;
+            if((preferences[date]||{})[under.id]==='negative') return; // hard block
+            const p=getPeriodForDate(date,periods);
+            if(p?.eligibleDocs && !p.eligibleDocs.includes(under.id)) return;
+
+            // Score this swap (higher = better)
+            let score = 0;
+            // Main driver: reduce the gap
+            score += (counts[over.id]  - targets[over.id])  * 10; // over above target
+            score += (targets[under.id] - counts[under.id]) * 10; // under below target
+            // Prefer positive preference dates for the under-scheduled person
+            if((preferences[date]||{})[under.id]==='positive') score += 15;
+            // Prefer NOT giving over a date they have a positive preference (minor)
+            if((preferences[date]||{})[over.id]==='positive') score -= 3;
+
+            if(!bestSwap || score > bestSwap.score){
+              bestSwap = {date, over, under, score};
+            }
+          });
+        }
+      }
+
+      if(!bestSwap) break; // no valid swap found anywhere
+
+      // Execute the swap
+      sched[bestSwap.date] = (sched[bestSwap.date]||[]).map(id=>
+        id===bestSwap.over.id ? bestSwap.under.id : id
+      );
+    }
+
+    return sched;
   }
 
-  return sched;
+  return rebalance(sched);
 }
 
 // ─── EQUITY SUGGESTIONS ───────────────────────────────────────────────────────
