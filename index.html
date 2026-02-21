@@ -357,7 +357,52 @@ function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences
   for(let d=new Date(startDate+'T00:00:00');d<=new Date(endDate+'T00:00:00');d.setDate(d.getDate()+1))
     planDates.push(fmt(d));
 
-  // ── running counters (seeded from carry-over + existing assignments) ──
+  // ── helpers ──
+  function isEligible(docId, date){
+    if(isDateLocked(date,lockedRanges)) return false;
+    if((preferences[date]||{})[docId]==='negative') return false;
+    if(!getSlotsForDate(date,periods)) return false;
+    const p=getPeriodForDate(date,periods);
+    if(p?.eligibleDocs && !p.eligibleDocs.includes(docId)) return false;
+    return true;
+  }
+  function isPositive(docId,date){ return (preferences[date]||{})[docId]==='positive'; }
+
+  // ── capacity per doctor (eligible days in plan range) ──
+  const capacity={};
+  allDoctors.forEach(doc=>{
+    capacity[doc.id] = planDates.filter(d=>isEligible(doc.id,d)).length;
+  });
+
+  // ── positive-preference count per doctor ──
+  const posCount={};
+  allDoctors.forEach(doc=>{
+    posCount[doc.id] = planDates.filter(d=>isEligible(doc.id,d)&&isPositive(doc.id,d)).length;
+  });
+
+  // ── total assignable slots ──
+  const totalSlots = planDates.reduce((s,d)=>{
+    if(isDateLocked(d,lockedRanges)) return s;
+    return s+getSlotsForDate(d,periods);
+  },0);
+
+  // ── fair target per doctor, capped by capacity ──
+  const n=allDoctors.length;
+  const baseTarget=Math.floor(totalSlots/n);
+  const extraCount=totalSlots-baseTarget*n;
+  const byCapDesc=[...allDoctors].sort((a,b)=>capacity[b.id]-capacity[a.id]);
+  const fairTarget={};
+  byCapDesc.forEach((doc,i)=>{
+    fairTarget[doc.id]=Math.min(i<extraCount?baseTarget+1:baseTarget, capacity[doc.id]);
+  });
+  let unmet=totalSlots-Object.values(fairTarget).reduce((a,b)=>a+b,0);
+  for(const doc of byCapDesc){
+    if(unmet<=0) break;
+    const g=Math.min(capacity[doc.id]-fairTarget[doc.id],unmet);
+    if(g>0){ fairTarget[doc.id]+=g; unmet-=g; }
+  }
+
+  // ── running counters (seeded from carry-over + pre-existing) ──
   const cnt={}, wdC={}, weC={}, hdC={};
   allDoctors.forEach(d=>{
     cnt[d.id]=carryOver[d.id]?.total||0;
@@ -371,177 +416,149 @@ function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences
       if(t==='holiday') hdC[id]++; else if(t==='weekend') weC[id]++; else wdC[id]++; });
   });
 
-  // ── consecutive-week tracker ──
-  const lastWk={};
-  allDoctors.forEach(d=>{ lastWk[d.id]=null; });
-  Object.entries(sched).sort().forEach(([date,ids])=>{
-    ids.forEach(id=>{ if(lastWk[id]!==undefined) lastWk[id]=getISOWeek(date); });
-  });
-
-  // ── week-bundling tracker (equity mode: same person keeps whole week) ──
-  const weekAssigned={};
-  allDoctors.forEach(d=>{ weekAssigned[d.id]={}; });
+  // ── consecutive-week + bundling trackers ──
+  const lastWk={}, weekAssigned={};
+  allDoctors.forEach(d=>{ lastWk[d.id]=null; weekAssigned[d.id]={}; });
   Object.entries(sched).sort().forEach(([date,ids])=>{
     const wk=getISOWeek(date);
-    ids.forEach(id=>{ if(weekAssigned[id]) weekAssigned[id][wk]=(weekAssigned[id][wk]||0)+1; });
-  });
-
-  const weekRankAssignment={};
-
-  // ── capacity: how many plan-dates each doctor can theoretically work ──
-  // (not negative, not locked, eligible for period, slot exists)
-  const capacity={};
-  allDoctors.forEach(doc=>{
-    capacity[doc.id]=0;
-    planDates.forEach(date=>{
-      if(isDateLocked(date,lockedRanges)) return;
-      if((preferences[date]||{})[doc.id]==='negative') return;
-      if(!getSlotsForDate(date,periods)) return;
-      const p=getPeriodForDate(date,periods);
-      if(p?.eligibleDocs && !p.eligibleDocs.includes(doc.id)) return;
-      capacity[doc.id]++;
+    ids.forEach(id=>{
+      if(lastWk[id]!==undefined) lastWk[id]=wk;
+      if(weekAssigned[id]) weekAssigned[id][wk]=(weekAssigned[id][wk]||0)+1;
     });
   });
+  const weekRankAssignment={};
 
-  // ── compute FAIR TARGETS up front from total slots in the period ──
-  // Total slots = sum of slots required across all plan dates (that are not locked).
-  // We divide this equally, capped by capacity. This gives us a fixed goal
-  // that doesn't drift as we assign.
-  const totalSlots = planDates.reduce((sum,date)=>{
-    if(isDateLocked(date,lockedRanges)) return sum;
-    return sum + getSlotsForDate(date,periods);
-  },0);
-  const n = allDoctors.length;
-  const baseTarget = Math.floor(totalSlots/n);
-  const extraCount = totalSlots - baseTarget*n;
-  // Doctors with higher capacity get the rounding +1
-  const byCapDesc = [...allDoctors].sort((a,b)=>capacity[b.id]-capacity[a.id]);
-  const fairTarget={};
-  byCapDesc.forEach((doc,i)=>{
-    fairTarget[doc.id] = Math.min(i < extraCount ? baseTarget+1 : baseTarget, capacity[doc.id]);
-  });
-  // Redistribute unmet quota to those with remaining capacity
-  let unmet = totalSlots - Object.values(fairTarget).reduce((a,b)=>a+b,0);
-  for(const doc of byCapDesc){
-    if(unmet<=0) break;
-    const slack=capacity[doc.id]-fairTarget[doc.id];
-    if(slack>0){ const g=Math.min(slack,unmet); fairTarget[doc.id]+=g; unmet-=g; }
+  // helper: assign one doctor to a slot and update all counters
+  function assign(doc, date){
+    const t=getDayType(date,customH), wk=getISOWeek(date);
+    sched[date]=[...(sched[date]||[]),doc.id];
+    cnt[doc.id]++; lastWk[doc.id]=wk;
+    weekAssigned[doc.id][wk]=(weekAssigned[doc.id][wk]||0)+1;
+    if(t==='holiday') hdC[doc.id]++;
+    else if(t==='weekend') weC[doc.id]++;
+    else wdC[doc.id]++;
   }
 
-  // ── STEP 1: greedy pass ──
-  // Primary goal: fill all slots. Equity is secondary here — rebalancing fixes it.
-  // We still prefer who has the fewest shifts to seed a reasonable distribution.
+  // ── STEP 0: PRE-ALLOCATE constrained doctors ──────────────────────────────
+  // A doctor is "constrained" if their positive-preference count ≤ their fair target.
+  // For these doctors, we guarantee they get ALL their positive days first
+  // (up to their target), before anyone else competes for those slots.
+  // We process most-constrained first (fewest positives relative to target).
+  const constrained = allDoctors
+    .filter(doc => posCount[doc.id] > 0 && posCount[doc.id] <= fairTarget[doc.id])
+    .sort((a,b) => (posCount[a.id]/Math.max(1,fairTarget[a.id])) - (posCount[b.id]/Math.max(1,fairTarget[b.id])));
+
+  for(const doc of constrained){
+    const posDates = planDates.filter(date=>{
+      if(!isEligible(doc.id,date)) return false;
+      if(!isPositive(doc.id,date)) return false;
+      const cur=sched[date]||[];
+      if(cur.includes(doc.id)) return false;
+      return cur.length < getSlotsForDate(date,periods);
+    });
+    // Assign up to fairTarget positive days for this doctor
+    let assigned=cnt[doc.id]-(carryOver[doc.id]?.total||0); // already assigned in plan range
+    for(const date of posDates){
+      if(assigned>=fairTarget[doc.id]) break;
+      const cur=sched[date]||[];
+      if(cur.includes(doc.id)) continue;
+      if(cur.length>=getSlotsForDate(date,periods)) continue;
+      assign(doc,date);
+      assigned++;
+    }
+  }
+
+  // ── STEP 1: GREEDY PASS ───────────────────────────────────────────────────
+  // Fill remaining open slots. Primary driver = distance from fairTarget.
   planDates.forEach(date=>{
     if(isDateLocked(date,lockedRanges)) return;
-    const slots   = getSlotsForDate(date,periods);
-    const prefs   = preferences[date]||{};
-    const t       = getDayType(date,customH);
-    const curWk   = getISOWeek(date);
-    const period  = getPeriodForDate(date,periods);
-    const already = sched[date]||[];
-    if(already.length >= slots) return;
+    const slots  = getSlotsForDate(date,periods);
+    const prefs  = preferences[date]||{};
+    const t      = getDayType(date,customH);
+    const curWk  = getISOWeek(date);
+    const period = getPeriodForDate(date,periods);
+    const already= sched[date]||[];
+    if(already.length>=slots) return;
 
-    const eligible  = periodDoctors[date]||allDoctors;
-    const notYet    = eligible.filter(d=>!already.includes(d.id));
-    const chosen    = [];
-    const remaining = [...notYet];
+    const eligible = periodDoctors[date]||allDoctors;
+    const remaining= eligible.filter(d=>!already.includes(d.id));
+    const chosen   = [];
 
     for(let rankIdx=already.length; rankIdx<slots && remaining.length>0; rankIdx++){
       const wrkKey = period?`${curWk}:${period.id}:${rankIdx}`:null;
       const pool   = remaining.filter(d=>prefs[d.id]!=='negative');
       if(pool.length===0) break;
 
-      if(distributeMode==='equity'){
-        const preferredForRank = wrkKey&&weekRankAssignment[wrkKey];
-        const scored = pool.map(doc=>{
-          let s=0;
-          // How far below fair target (primary equity driver)
-          s += (fairTarget[doc.id]-(cnt[doc.id]||0)) * 20;
-          // Positive preference
-          if(prefs[doc.id]==='positive') s+=8;
-          // Consecutive week penalty
-          if(lastWk[doc.id]&&weeksConsecutive(lastWk[doc.id],curWk)) s-=60;
-          // Week-bundling (lower weight than equity)
-          s += (weekAssigned[doc.id]?.[curWk]||0)*6;
-          // Rank consistency
+      const preferredForRank = wrkKey&&weekRankAssignment[wrkKey];
+      const scored = pool.map(doc=>{
+        let s=0;
+        // PRIMARY: distance below fair target — strongly penalise being over
+        const gap = fairTarget[doc.id]-(cnt[doc.id]||0);
+        s += gap * 25;
+        // Positive preference — but extra weight if constrained (low pos count)
+        if(prefs[doc.id]==='positive'){
+          const urgency = posCount[doc.id]<=fairTarget[doc.id] ? 30 : 8;
+          s += urgency;
+        }
+        if(distributeMode==='equity'){
+          if(lastWk[doc.id]&&weeksConsecutive(lastWk[doc.id],curWk)) s-=55;
+          s+=(weekAssigned[doc.id]?.[curWk]||0)*5;
           if(preferredForRank&&doc.id===preferredForRank) s+=10;
-          s+=Math.random()*0.5;
-          return {doc,s};
-        });
-        scored.sort((a,b)=>b.s-a.s);
-        const pick=scored[0].doc;
-        chosen.push(pick);
-        remaining.splice(remaining.findIndex(d=>d.id===pick.id),1);
-        if(wrkKey) weekRankAssignment[wrkKey]=pick.id;
-
-      } else {
-        // RANDOM mode: fair + spread
-        const scored = pool.map(doc=>{
-          let s=0;
-          s+=(fairTarget[doc.id]-(cnt[doc.id]||0))*15;
-          if(prefs[doc.id]==='positive') s+=5;
-          s+=(Math.random()-0.5)*12;
-          return {doc,s};
-        });
-        scored.sort((a,b)=>b.s-a.s);
-        const pick=scored[0].doc;
-        chosen.push(pick);
-        remaining.splice(remaining.findIndex(d=>d.id===pick.id),1);
-        if(wrkKey&&!weekRankAssignment[wrkKey]) weekRankAssignment[wrkKey]=pick.id;
-      }
+        } else {
+          s+=(Math.random()-0.5)*10; // spread in random mode
+        }
+        s+=Math.random()*0.4;
+        return {doc,s};
+      });
+      scored.sort((a,b)=>b.s-a.s);
+      const pick=scored[0].doc;
+      chosen.push(pick);
+      remaining.splice(remaining.findIndex(d=>d.id===pick.id),1);
+      if(wrkKey) weekRankAssignment[wrkKey]=pick.id;
     }
 
-    sched[date]=[...already,...chosen.map(d=>d.id)];
+    const alreadyLen = already.length;
     chosen.forEach(doc=>{
-      cnt[doc.id]++;
-      lastWk[doc.id]=curWk;
-      weekAssigned[doc.id][curWk]=(weekAssigned[doc.id][curWk]||0)+1;
-      if(t==='holiday') hdC[doc.id]++;
-      else if(t==='weekend') weC[doc.id]++;
+      const t2=getDayType(date,customH), wk2=getISOWeek(date);
+      cnt[doc.id]++; lastWk[doc.id]=wk2;
+      weekAssigned[doc.id][wk2]=(weekAssigned[doc.id][wk2]||0)+1;
+      if(t2==='holiday') hdC[doc.id]++;
+      else if(t2==='weekend') weC[doc.id]++;
       else wdC[doc.id]++;
     });
+    sched[date]=[...already,...chosen.map(d=>d.id)];
   });
 
-  // ── STEP 2: rebalancing pass ──────────────────────────────────────────────
-  // Targets are fixed (fairTarget computed above). Swap over→under or fill open
-  // slots until everyone is within ±1 of their target.
-  // Hard rule: never assign to a negative-preference date.
-  // Prefer swapping onto positive-preference dates.
+  // ── STEP 2: REBALANCING PASS ──────────────────────────────────────────────
+  // Iteratively find best (swap or add) to bring everyone to their fairTarget.
+  // Hard rule: never put someone on a date they have negative preference.
+  // Prefer positive-preference dates for the under-scheduled doctor.
 
   function getCounts(){
     const c={};
     allDoctors.forEach(d=>{ c[d.id]=0; });
     planDates.forEach(date=>{
-      (sched[date]||[]).forEach(id=>{ if(c[id]!==undefined) c[id]++; });
+      (sched[date]||[]).forEach(id=>{ if(id in c) c[id]++; });
     });
     return c;
   }
 
   function canSwap(date,overId,underId){
-    if(isDateLocked(date,lockedRanges)) return false;
     const ids=sched[date]||[];
-    if(!ids.includes(overId)) return false;
-    if(ids.includes(underId)) return false;
-    if((preferences[date]||{})[underId]==='negative') return false;
-    const p=getPeriodForDate(date,periods);
-    if(p?.eligibleDocs&&!p.eligibleDocs.includes(underId)) return false;
+    if(!ids.includes(overId)||ids.includes(underId)) return false;
+    if(!isEligible(underId,date)) return false;
+    // also check underId not negative (isEligible already checks this)
     return true;
   }
 
   function canAdd(date,underId){
-    if(isDateLocked(date,lockedRanges)) return false;
-    const required=getSlotsForDate(date,periods);
-    if(!required) return false;
+    if(!isEligible(underId,date)) return false;
     const ids=sched[date]||[];
-    if(ids.length>=required) return false;
     if(ids.includes(underId)) return false;
-    if((preferences[date]||{})[underId]==='negative') return false;
-    const p=getPeriodForDate(date,periods);
-    if(p?.eligibleDocs&&!p.eligibleDocs.includes(underId)) return false;
-    return true;
+    return ids.length < getSlotsForDate(date,periods);
   }
 
-  const MAX_SWAPS=2000;
+  const MAX_SWAPS=3000;
   for(let pass=0; pass<MAX_SWAPS; pass++){
     const counts   = getCounts();
     const overDocs = allDoctors.filter(d=>counts[d.id]>fairTarget[d.id])
@@ -554,19 +571,25 @@ function autoSchedule(startDate, endDate, allDoctors, periodDoctors, preferences
 
     for(const under of underDocs){
       const shortfall=fairTarget[under.id]-counts[under.id];
-      for(const date of planDates){
+      // Sort dates: positive-preference days for 'under' first
+      const sortedDates=[...planDates].sort((a,b)=>{
+        const pa=isPositive(under.id,a)?1:0, pb=isPositive(under.id,b)?1:0;
+        return pb-pa;
+      });
+      for(const date of sortedDates){
+        // Option A: fill open slot
         if(canAdd(date,under.id)){
-          const pref=(preferences[date]||{})[under.id];
-          const score=shortfall*10+(pref==='positive'?20:0)+2;
+          const score=shortfall*10+(isPositive(under.id,date)?25:0)+2;
           if(!best||score>best.score)
             best={action:'add',date,under,over:null,score};
         }
+        // Option B: swap over→under
         for(const over of overDocs){
           if(canSwap(date,over.id,under.id)){
             const excess=counts[over.id]-fairTarget[over.id];
-            const prefUnder=(preferences[date]||{})[under.id]==='positive'?20:0;
-            const prefOver =(preferences[date]||{})[over.id] ==='positive'?-5:0;
-            const score=shortfall*10+excess*10+prefUnder+prefOver;
+            const score=shortfall*10+excess*10
+              +(isPositive(under.id,date)?25:0)
+              -(isPositive(over.id,date)?5:0);
             if(!best||score>best.score)
               best={action:'swap',date,under,over,score};
           }
@@ -642,49 +665,31 @@ function detectProblems(schedule, doctors, periods, lockedRanges, customH={}, pr
     const severity = Math.abs(diff) >= 3 ? 'danger' : 'warn';
 
     if(diff > 0) {
-      // This doc has TOO MANY — find underscheduled doc to swap with
       const underDocs = doctors
         .filter(d=>d.id!==doc.id && (stats[d.id]?.total||0) < avg - 0.5)
         .sort((a,b)=>(stats[a.id]?.total||0)-(stats[b.id]?.total||0));
-      
       let suggestion = null;
       for(const target of underDocs) {
-        const cands = swapCandidates(doc, target, 'any')
-          .concat(swapCandidates(doc, target, 'weekday'))
-          .filter((v,i,a)=>a.indexOf(v)===i);
+        const cands = [...new Set([...swapCandidates(doc, target, 'any'), ...swapCandidates(doc, target, 'weekday')])];
         if(cands.length) {
-          suggestion = { action:'swap', from: doc.name, to: target.name, date: cands[0], count: cands.length };
+          suggestion = { action:'swap', from: doc.name, to: target.name, fromDocId: doc.id, toDocId: target.id, date: cands[0], count: cands.length };
           break;
         }
       }
-      problems.push({
-        type: severity,
-        icon: '⚖',
-        text: `${doc.name} heeft te veel wachten: ${tot} (gem. ${avg.toFixed(1)}, verschil +${diff.toFixed(1)})`,
-        suggestion,
-      });
+      problems.push({ type: severity, icon: '⚖', text: `${doc.name} heeft te veel wachten: ${tot} (gem. ${avg.toFixed(1)}, verschil +${diff.toFixed(1)})`, suggestion });
     } else {
-      // This doc has TOO FEW — find overscheduled doc
       const overDocs = doctors
         .filter(d=>d.id!==doc.id && (stats[d.id]?.total||0) > avg + 0.5)
         .sort((a,b)=>(stats[b.id]?.total||0)-(stats[a.id]?.total||0));
-      
       let suggestion = null;
       for(const source of overDocs) {
-        const cands = swapCandidates(source, doc, 'any')
-          .concat(swapCandidates(source, doc, 'weekday'))
-          .filter((v,i,a)=>a.indexOf(v)===i);
+        const cands = [...new Set([...swapCandidates(source, doc, 'any'), ...swapCandidates(source, doc, 'weekday')])];
         if(cands.length) {
-          suggestion = { action:'swap', from: source.name, to: doc.name, date: cands[0], count: cands.length };
+          suggestion = { action:'swap', from: source.name, to: doc.name, fromDocId: source.id, toDocId: doc.id, date: cands[0], count: cands.length };
           break;
         }
       }
-      problems.push({
-        type: severity,
-        icon: '⚖',
-        text: `${doc.name} heeft te weinig wachten: ${tot} (gem. ${avg.toFixed(1)}, verschil ${diff.toFixed(1)})`,
-        suggestion,
-      });
+      problems.push({ type: severity, icon: '⚖', text: `${doc.name} heeft te weinig wachten: ${tot} (gem. ${avg.toFixed(1)}, verschil ${diff.toFixed(1)})`, suggestion });
     }
   });
 
@@ -1520,6 +1525,17 @@ function App(){
   if(!currentUser) return <LoginPage users={users} onLogin={u=>{setCurrentUser(u);setPage('calendar');}}/>;
 
   function logout(){ setCurrentUser(null); setPage('calendar'); setSuggestions(null); }
+
+  // Apply a suggested swap from the problems panel: replace fromDocId with toDocId on given date
+  function applySwap(date, fromDocId, toDocId){
+    if(!date||!fromDocId||!toDocId) return;
+    setSchedule(prev=>{
+      const cur = prev[date]||[];
+      if(!cur.includes(fromDocId)||cur.includes(toDocId)) return prev;
+      return {...prev, [date]: cur.map(id=>id===fromDocId?toDocId:id)};
+    });
+    setAdminEdits(ae=>({...ae,[date]:true}));
+  }
   function prevMonth(){ if(month===0){setMonth(11);setYear(y=>y-1);}else setMonth(m=>m-1); }
   function nextMonth(){ if(month===11){setMonth(0);setYear(y=>y+1);}else setMonth(m=>m+1); }
 
@@ -1721,9 +1737,15 @@ function App(){
                   <div key={i} className={`problem-item p-${p.type}`} style={{flexDirection:'column',alignItems:'flex-start',gap:4}}>
                     <div style={{display:'flex',alignItems:'center',gap:8}}><span>{p.icon}</span><span>{p.text}</span></div>
                     {p.suggestion&&p.suggestion.action==='swap'&&(
-                      <div style={{fontSize:11,opacity:0.85,paddingLeft:20}}>
-                        💡 Verschuif een wacht van <strong>{p.suggestion.from}</strong> naar <strong>{p.suggestion.to}</strong>{' '}
-                        (bv. {fmtDisplay(p.suggestion.date)}{p.suggestion.count>1?`, +${p.suggestion.count-1} andere mogelijkheid${p.suggestion.count!==2?'heden':''}`:''})
+                      <div style={{display:'flex',alignItems:'center',gap:8,paddingLeft:20,flexWrap:'wrap'}}>
+                        <span style={{fontSize:11,opacity:0.85}}>
+                          💡 Verschuif een wacht van <strong>{p.suggestion.from}</strong> naar <strong>{p.suggestion.to}</strong>{' '}
+                          (bv. {fmtDisplay(p.suggestion.date)}{p.suggestion.count>1?`, +${p.suggestion.count-1} andere`:''})
+                        </span>
+                        <button className="btn btn-sm" style={{padding:'2px 10px',fontSize:11,background:'rgba(16,185,129,0.2)',border:'1px solid rgba(16,185,129,0.5)',color:'var(--positive)',borderRadius:6,cursor:'pointer',flexShrink:0}}
+                          onClick={()=>applySwap(p.suggestion.date,p.suggestion.fromDocId,p.suggestion.toDocId)}>
+                          ↔ Toepassen
+                        </button>
                       </div>
                     )}
                     {p.suggestion&&p.suggestion.action==='info'&&(
@@ -1898,9 +1920,15 @@ function App(){
                   <div key={i} className={`problem-item p-${p.type}`} style={{flexDirection:'column',alignItems:'flex-start',gap:4}}>
                     <div style={{display:'flex',alignItems:'center',gap:8}}><span>{p.icon}</span><span>{p.text}</span></div>
                     {p.suggestion&&p.suggestion.action==='swap'&&(
-                      <div style={{fontSize:11,opacity:0.85,paddingLeft:20}}>
-                        💡 Verschuif een wacht van <strong>{p.suggestion.from}</strong> naar <strong>{p.suggestion.to}</strong>{' '}
-                        (bv. {fmtDisplay(p.suggestion.date)}{p.suggestion.count>1?`, +${p.suggestion.count-1} andere mogelijkheid${p.suggestion.count!==2?'heden':''}`:''})
+                      <div style={{display:'flex',alignItems:'center',gap:8,paddingLeft:20,flexWrap:'wrap'}}>
+                        <span style={{fontSize:11,opacity:0.85}}>
+                          💡 Verschuif een wacht van <strong>{p.suggestion.from}</strong> naar <strong>{p.suggestion.to}</strong>{' '}
+                          (bv. {fmtDisplay(p.suggestion.date)}{p.suggestion.count>1?`, +${p.suggestion.count-1} andere`:''})
+                        </span>
+                        <button className="btn btn-sm" style={{padding:'2px 10px',fontSize:11,background:'rgba(16,185,129,0.2)',border:'1px solid rgba(16,185,129,0.5)',color:'var(--positive)',borderRadius:6,cursor:'pointer',flexShrink:0}}
+                          onClick={()=>applySwap(p.suggestion.date,p.suggestion.fromDocId,p.suggestion.toDocId)}>
+                          ↔ Toepassen
+                        </button>
                       </div>
                     )}
                     {p.suggestion&&p.suggestion.action==='info'&&(
