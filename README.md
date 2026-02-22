@@ -1,425 +1,253 @@
-# MedWatch — Wachtplanning / On-Call Scheduler
+# MedWatch — Wachtplanning / Duty Planning
 
-<div align="center">
-
-![MedWatch](https://img.shields.io/badge/MedWatch-v2.1-3b82f6?style=for-the-badge)
-![License](https://img.shields.io/badge/license-MIT-10b981?style=for-the-badge)
-![HTML](https://img.shields.io/badge/HTML-Single%20File-f97316?style=for-the-badge&logo=html5)
-![React](https://img.shields.io/badge/React-18-61dafb?style=for-the-badge&logo=react)
-![No Backend](https://img.shields.io/badge/Backend-None%20required-8b5cf6?style=for-the-badge)
-
-**🇳🇱 [Nederlands](#nederlands) · 🇬🇧 [English](#english)**
-
-</div>
+> **Bestandsnaam / Filename:** `medwatch.html`  
+> Zelfstandige webapplicatie — geen installatie, geen server, geen internetverbinding vereist.  
+> Standalone web application — no installation, no server, no internet connection required.
 
 ---
 
-## 📸 Screenshots
-
-<table>
-  <tr>
-    <td align="center"><b>Kalender</b></td>
-    <td align="center"><b>Overzicht</b></td>
-  </tr>
-  <tr>
-    <td><img src="screenshots/screenshot-calendar.svg" alt="Kalender" width="540"/></td>
-    <td><img src="screenshots/screenshot-overview.svg" alt="Overzicht" width="540"/></td>
-  </tr>
-  <tr>
-    <td align="center"><b>Instellingen — rolbenaming</b></td>
-    <td align="center"><b>Login</b></td>
-  </tr>
-  <tr>
-    <td><img src="screenshots/screenshot-settings.svg" alt="Instellingen" width="540"/></td>
-    <td><img src="screenshots/screenshot-login.svg" alt="Login" width="540"/></td>
-  </tr>
-</table>
-
----
-
-## 🇳🇱 Nederlands <a name="nederlands"></a>
+## 🇳🇱 Nederlands
 
 ### Wat is MedWatch?
 
-MedWatch is een **volledig browser-gebaseerde wachtplanningsapplicatie** voor medische teams, zorgpersoneel en andere organisaties met roterende diensten. De applicatie bestaat uit **één enkel HTML-bestand** en vereist geen server, geen installatie en geen internetverbinding na het eerste laden.
+MedWatch is een volledig zelfstandige HTML-applicatie voor het beheren van wacht- en dienstplanning in ziekenhuizen, klinieken of andere organisaties. Alles draait in de browser — geen server, geen database, geen account. Gegevens worden lokaal opgeslagen via `localStorage` en kunnen als JSON-backup worden geëxporteerd en geïmporteerd.
+
+### Installatie & gebruik
+
+1. Sla `medwatch.html` op uw computer of gedeelde schijf op.
+2. Open het bestand in een moderne browser (Chrome, Firefox, Edge, Safari).
+3. Log in met de standaard beheerdersaccount: gebruikersnaam `admin`, wachtwoord `admin123`.
+4. Wijzig het wachtwoord onmiddellijk via **Gebruikers → bewerken**.
+
+> Het bestand kan ook op een intranet-webserver geplaatst worden — dan is het bereikbaar voor alle gebruikers in het netwerk zonder extra configuratie.
 
 ---
 
-### ✨ Functies
+### Functies
 
-#### 📅 Planning
-- **Interactieve kalender** — maandoverzicht met kleurgecodeerde medewerkers, weekendmarkering, feestdagen en vergrendelde periodes in één oogopslag
-- **Auto-inplannen** — kies tussen *evenredige* of *volledig willekeurige* verdeling (zie [Verdeelmodus](#verdeelmodus-nl))
-- **Meerdere slots per dag** — 1e, 2e, ... medewerker met rang-consistentie per week: dezelfde persoon houdt dezelfde rang binnen een ISO-week
-- **Wachtperiodes** — definieer periodes met een afwijkend aantal medewerkers per dag, met aparte instellingen per dagtype (weekdag / weekend / feestdag)
+#### Kalender & planning
+- Maandkalender met drag-and-drop: sleep een arts naar een andere dag om wachten te verschuiven.
+- Klik op een dag om handmatig artsen toe te voegen of te verwijderen.
+- Kleurcodering per arts; initialen worden weergegeven in de kalender.
+- Slots per dag configureerbaar per dagtype (weekdag / weekend / feestdag), per periode.
+- Weekeindenuitbreiding: vrijdag kan worden meegeteld als weekenddag.
+- Vergrendelde dagen: beheerders kunnen datums of periodes vergrendelen zodat ze niet meer bewerkt kunnen worden.
 
-#### ⚖️ Eerlijkheid & Analyse
-- **Evenredigheidsscore** — real-time equity score (0–100%) met kleurgecodeerde voortgangsbalk
-- **Overdracht vorige periode** — neem historische tellingen mee over planningsperiodes voor eerlijkheid op lange termijn
-- **Overzicht** — tabel per medewerker met totalen, weekdagen, weekends, feestdagen en maximale aaneengesloten weken
-- **Probleemdetectie met oplossingsvoorstellen** — bij equity-afwijkingen stelt de app concreet voor welke wacht van wie naar wie verschoven kan worden, inclusief een specifieke datum (zie [Probleemdetectie](#probleemdetectie-nl))
+#### Automatisch inplannen
+- Twee modi:
+  - **Evenredig (weken):** dezelfde arts krijgt bij voorkeur een volledige ISO-week. Eerlijk verdeeld over dagtypes en periodes. Voorkeuren gerespecteerd. Geen opeenvolgende weken.
+  - **Verspreid (willekeurig):** wachten worden per dag willekeurig verdeeld, voorkeuren gerespecteerd.
+- Kies een datumrange en klik op **✓ Inplannen**.
 
-#### 🔧 Beheer
-- **Vergrendelingen** — sluit datumranges af zodat ze niet meer bewerkt kunnen worden; vergrendelde dagen worden overgeslagen bij auto-inplannen
-- **Admin-bewerkingen** — manuele aanpassingen worden paars gemarkeerd (✏) en apart geteld
-- **Feestdagen** — Belgische feestdagen 2025–2027 ingebouwd + eigen aangepaste feestdagen per organisatie
-- **Aanpasbare rolbenaming** — hernoem "arts/artsen" naar bv. "verpleger/verplegers", "medewerker", "technicus" — 8 snelle presets + volledig vrij in te stellen (enkelvoud, meervoud, icoon, planningstitel)
-- **PDF-export** — afdrukbare planning per maand, per wachtperiode of vrij gekozen datumrange
-- **Admin doet niet mee** — gebruikers met de rol *Admin* worden automatisch uitgesloten van de wachtverdeling, statistieken en evenredigheidberekening
+#### Algoritme (Evenredige modus) — stap voor stap
 
-#### 👤 Gebruikers
-- **Rolgebaseerde toegang** — *Admin* (volledig beheer) en *medewerker* (eigen kalender + voorkeuren)
-- **Voorkeuren per dag** — positieve ✓ of negatieve ✕ datumvoorkeur, met snelle maandknoppen om een volledige maand in één klik in te stellen en daarna dag per dag bij te sturen
-- **Lokale authenticatie** — gebruikersnaam/wachtwoord, opgeslagen als hash in `localStorage`
+Het algoritme werkt in drie fasen:
 
----
+**Fase 0 — Gedwongen toewijzing**
+Dagen waarop slechts één arts beschikbaar is (geen negatieve voorkeur, alle anderen wel) worden als eerste ingevuld. Dit voorkomt dat die arts later "verdubbeld" wordt doordat het planningsalgoritme haar opnieuw kiest voor onbeperkte slots.
 
-### 🔍 Functies in detail
+**Fase 1 — Weekverdeling via Bresenham-accumulatie**
+Per ISO-week wordt één "eigenaar" aangewezen via een accumulator (vergelijkbaar met een round-robin of Bresenham lijnalgoritme):
+- Elke arts bouwt een schuldteller op op basis van zijn/haar pro-rata aandeel.
+- De arts met de hoogste schuld die beschikbaar is en zijn/haar streefgetal nog niet bereikt, krijgt de week.
+- Zware straf (−10⁸) voor opeenvolgende weken.
+- Bonus voor artsen met weinig beschikbare dagen totaal (beschermt schaarse beschikbaarheid).
+- Eens een arts een week toegewezen krijgt, wordt zijn accumulator teruggesteld naar het volgende verwachte interval.
 
-#### <a name="verdeelmodus-nl"></a>Verdeelmodus bij auto-inplannen
+**Fase 2 — Residueel herbalanceren**
+Na de weekverdeling worden resterende open slots ingevuld via een greedy-herbalancering:
+- Swap-kandidaten worden berekend: voor elke over-ingeplande arts worden datums gezocht waarop een onder-ingeplande arts beschikbaar is.
+- Maximaal 500 iteraties; stopt zodra de verdeling evenwichtig is.
 
-Bij het starten van auto-inplannen kies je een verdeelmodus:
+#### Verdeling & statistieken
+- **Overzicht:** tabel met totaal, weekdagen, weekends, feestdagen, positieve/negatieve voorkeursdagen en maximale opeenvolgende weken per arts.
+- **Probleempaneel:** detecteert automatisch:
+  - Te veel of te weinig wachten (drempel: ±1,5 t.o.v. gemiddelde).
+  - Opeenvolgende weken.
+  - Openstaande datums (iedereen negatief).
+  - **Beschikbaarheidswaarschuwing:** als een arts minder dan 60% van het streefgetal aan beschikbare dagen heeft, verschijnt een expliciete waarschuwing vóórdat het inplannen begint.
+- **Auto-fix:** één klik lost alle swappable problemen automatisch op.
 
-| Modus | Werking |
-|-------|---------|
-| **⚖ Evenredig — per week** *(standaard)* | Zoveel mogelijk dezelfde persoon een volledige week (+40 bonus per dag reeds in die week). Eerlijk verdeeld per dagtype, geen opeenvolgende weken (−100 straf), voorkeuren (+5/−10), rang-consistentie (+50). |
-| **🎲 Willekeurig — gespreid** | Losse dagen at random over de periode, niet per week gebundeld. Wél eerlijk verdeeld en voorkeuren gerespecteerd. Wie weinig beschikbaar is (weinig positieve of veel negatieve dagen) krijgt voorrang voor die dagen. |
+#### Voorkeuren
+- Per arts per dag: positief ✓ / negatief ✕ / geen voorkeur.
+- Klik cycleert door de statussen.
+- Hele maand in één klik op negatief of wissen.
+- Voorkeursdagen worden in groen/rood weergegeven op de kalender.
 
-#### <a name="probleemdetectie-nl"></a>Probleemdetectie & oplossingsvoorstellen
+#### Periodes
+- Definieer meerdere wachtperiodes (naam, kleur, datumrange).
+- Per periode: aantal slots op weekdagen, weekends en feestdagen afzonderlijk instellen.
+- Optioneel: beperk welke artsen mogen deelnemen aan een periode.
 
-Het probleempaneel (kalender én overzicht) analyseert automatisch:
+#### Feestdagen
+- Belgische feestdagen automatisch berekend per jaar (Pasen, Pinksteren, enz.).
+- Aangepaste feestdagen toevoegen.
+- Feestdagen worden rood gemarkeerd op de kalender.
 
-- **Equity-afwijkingen** (≥ 1.5 van het gemiddelde) — met vermelding of iemand te veel of te weinig heeft, en een concreet voorstel: *"Verschuif een wacht van Dr. Peters naar Dr. Martens (bv. 15 jul, +2 andere mogelijkheden)"*. Vergrendelde datums worden uitgesloten van suggesties.
-- **Opeenvolgende weken** — wie meer dan één week aaneengesloten ingepland staat, met advies welke wacht verplaatst kan worden
-- **Open slots** — datums binnen een periode die nog niet volledig ingevuld zijn, met de concrete datums vermeld
+#### Vergrendelingen
+- Vergrendel datumranges met een optioneel label.
+- Vergrendelde dagen zijn niet meer bewerkbaar maar blijven zichtbaar.
 
-#### Maanddefault voor voorkeuren
+#### Overdracht
+- Neem telwaarden mee van een vorige planningsperiode voor een correcte evenredige verdeling.
 
-Per maand in het voorkeursscherm staan drie kleine knoppen boven het minikalendraster:
+#### Gebruikersbeheer
+- Meerdere gebruikers met eigen login.
+- Twee rollen: **admin** (volledige toegang) en **arts** (alleen eigen kalender en voorkeuren).
+- Gebruikers activeren/deactiveren zonder te verwijderen.
 
-- **✓ alles** — zet de volledige maand op positief. Is de maand al volledig positief, dan wist de knop alles.
-- **✕ alles** — zelfde logica voor negatief.
-- **🗑** — wist alle voorkeuren voor die maand (verschijnt alleen als er al iets ingesteld is).
+#### Instellingen & rolbenaming
+- Pas de rolnaam aan: enkelvoud, meervoud, icoon en planningstitel (bijv. "stagiair / stagiairs / 🎓 / Stageplanning").
+- Zeven snelle presets: arts, verpleegkundige (gender-neutraal), medewerker, stagiair, vrijwilliger, technicus, bewaker.
+- **Taalschakelaar:** kies de taal voor de rolpresets: 🇳🇱 Nederlands · 🇬🇧 English · 🇫🇷 Français · 🇩🇪 Deutsch · 🇨🇳 中文 · 🇯🇵 日本語. De presets vertalen automatisch mee.
 
-Daarna kan elke dag nog afzonderlijk worden aangepast door erop te klikken (geen → positief → negatief → geen).
-
----
-
-### 🚀 Snel starten
-
-1. Download `index.html`
-2. Open het bestand in een browser (Chrome, Firefox, Edge, Safari)
-3. Login met gebruikersnaam `admin` en wachtwoord `admin123`
-4. Voeg medewerkers toe via **Gebruikers** → **+ Gebruiker toevoegen**
-5. Stel eventueel een wachtperiode in via **Wachtperiodes**
-6. Klik op **⚡ Auto-inplannen** en kies een verdeelmodus
-
-> **Geen server nodig.** Het bestand werkt volledig lokaal. Alle data wordt opgeslagen in `localStorage` van de browser.
-
----
-
-### 💾 Data & Privacy
-
-- Alle data blijft **lokaal op uw toestel** in de browser `localStorage` onder sleutel `medwatch_v2`
-- Geen externe servers, geen tracking, geen cookies
-- Exporteren: `localStorage.getItem('medwatch_v2')` in de browserconsole
-- Importeren: `localStorage.setItem('medwatch_v2', '...')` en herlaad de pagina
-- Wissen: klik **Reset** op de kalender of wis de browser-opslag voor deze pagina
-
-### ⚠️ Beperkingen
-
-| Beperking | Toelichting |
-|-----------|-------------|
-| Gedeeld gebruik | `localStorage` is per browser/toestel — geen real-time synchronisatie tussen gebruikers |
-| Offline-only | Na het eerste laden is geen internet nodig, maar data is niet cloudgesynchroniseerd |
-| Browseropslag | Typisch 5–10 MB limiet; ruim voldoende voor jaren planning |
-
-Voor gedeeld gebruik op meerdere apparaten: exporteer/importeer de JSON-data manueel via de browserconsole.
+#### Exporteren
+- **PDF:** maand- of periodeoverzicht met kalender en verdeling.
+- **iCal (.ics):** exporteer het rooster per arts als agenda-bestand.
+- **E-mail (mailto):** stuur een wachtoverzicht naar een arts.
+- **JSON backup:** volledige export van alle data; importeer op een ander apparaat.
 
 ---
 
-## 🇬🇧 English <a name="english"></a>
+### Wijzigingslog
+
+| Versie | Wijzigingen |
+|--------|-------------|
+| v1 | Initiële release: kalender, drag-and-drop, voorkeuren, PDF |
+| v2 | Gebruikersbeheer, meerdere rollen, login |
+| v3 | Wachtperiodes, feestdagen, vergrendelingen, overdracht, auto-inplannen (equity-algoritme), probleempaneel, auto-fix |
+| v6 | Fase 0 singleton-fix, beschikbaarheidswaarschuwing, taalschakelaar rolpresets, verpleegkundige (gender-neutraal), bestandsnaam `medwatch.html` |
+
+---
+
+### Technische opmerkingen
+
+- **Geen installatie:** het bestand gebruikt React 18, ReactDOM en Babel Standalone geladen van cdnjs.cloudflare.com. Voor volledig offline gebruik, download die drie scripts en verwijs er lokaal naar.
+- **Opslag:** alle data wordt bewaard in `localStorage` onder de sleutel `medwatch_store`. Browser data wissen = dataverlies. Maak regelmatig een JSON-backup.
+- **Beveiliging:** wachtwoorden worden als eenvoudige hash opgeslagen. Voldoende voor intern gebruik op een vertrouwd netwerk; niet geschikt voor publiek toegankelijke omgevingen.
+- **Browsercompatibiliteit:** getest in Chrome 120+, Firefox 121+, Edge 120+, Safari 17+. Internet Explorer wordt niet ondersteund.
+
+---
+
+---
+
+## 🇬🇧 English
 
 ### What is MedWatch?
 
-MedWatch is a **fully browser-based on-call scheduling application** for medical teams, care staff, and any organisation with rotating duties. The entire application is a **single HTML file** — no server, no installation, no internet connection required after initial load.
+MedWatch is a fully self-contained HTML application for managing on-call and duty schedules in hospitals, clinics, or other organisations. Everything runs in the browser — no server, no database, no account. Data is stored locally via `localStorage` and can be exported and imported as a JSON backup.
+
+### Installation & usage
+
+1. Save `medwatch.html` to your computer or shared drive.
+2. Open the file in a modern browser (Chrome, Firefox, Edge, Safari).
+3. Log in with the default administrator account: username `admin`, password `admin123`.
+4. Change the password immediately via **Users → edit**.
+
+> The file can also be placed on an intranet web server — it will then be accessible to all users on the network without any additional configuration.
 
 ---
 
-### ✨ Features
+### Features
 
-#### 📅 Scheduling
-- **Interactive calendar** — monthly view with colour-coded staff, weekend highlighting, holidays and locked ranges visible at a glance
-- **Auto-schedule** — choose between *equity-based* or *fully random* distribution (see [Distribution mode](#distribution-mode-en))
-- **Multiple slots per day** — 1st, 2nd, ... staff member with rank consistency per week: the same person keeps the same rank within an ISO week
-- **On-call periods** — define periods with custom staffing levels, with separate settings per day type (weekday / weekend / holiday)
+#### Calendar & scheduling
+- Monthly calendar with drag-and-drop: drag a doctor to a different day to move shifts.
+- Click on a day to manually add or remove doctors.
+- Colour coding per doctor; initials are displayed on the calendar.
+- Slots per day configurable per day type (weekday / weekend / holiday), per period.
+- Weekend extension: Friday can be counted as a weekend day.
+- Locked days: administrators can lock dates or periods to prevent further editing.
 
-#### ⚖️ Fairness & Analysis
-- **Equity score** — real-time fairness indicator (0–100%) with colour-coded progress bar
-- **Carry-over from previous period** — bring historical shift counts forward across planning cycles for long-term fairness
-- **Overview** — per-staff table with totals, weekdays, weekends, holidays and max consecutive weeks
-- **Problem detection with fix suggestions** — on equity deviations, the app proposes a specific swap: who should give a shift to whom, and on which date (see [Problem detection](#problem-detection-en))
+#### Auto-scheduling
+- Two modes:
+  - **Equity (weeks):** the same doctor preferably receives a full ISO week. Fairly distributed across day types and periods. Preferences respected. No consecutive weeks.
+  - **Spread (random):** shifts are distributed randomly per day, with preferences respected.
+- Choose a date range and click **✓ Schedule**.
 
-#### 🔧 Administration
-- **Period locking** — lock date ranges to prevent further edits; locked days are automatically skipped during auto-scheduling
-- **Admin edits** — manual changes are highlighted in purple (✏) and counted separately
-- **Holidays** — Belgian public holidays 2025–2027 built in + custom organisation-specific holidays
-- **Configurable role labels** — rename "doctor/doctors" to e.g. "nurse/nurses", "employee", "technician" — 8 quick presets + fully custom (singular, plural, icon, planning title)
-- **PDF export** — printable schedule per month, per on-call period, or custom date range
-- **Admins excluded from scheduling** — users with the *Admin* role are automatically excluded from shift distribution, statistics and equity calculations
+#### Algorithm (Equity mode) — step by step
 
-#### 👤 Users
-- **Role-based access** — *Admin* (full control) and *staff* (own calendar + preferences)
-- **Per-day preferences** — positive ✓ or negative ✕ date preference, with one-click month buttons to set an entire month at once and fine-tune day by day afterwards
-- **Local authentication** — username/password stored as a hash in `localStorage`
+The algorithm works in three phases:
 
----
+**Phase 0 — Forced assignment**
+Days on which only one doctor is available (no negative preference, all others blocked) are filled in first. This prevents that doctor from being assigned additional shifts later because the scheduling algorithm selects them again for unconstrained slots.
 
-### 🔍 Features in detail
+**Phase 1 — Week assignment via Bresenham accumulation**
+For each ISO week, one "owner" is designated via an accumulator (similar to a round-robin or Bresenham line algorithm):
+- Each doctor builds up a debt counter based on their pro-rata share.
+- The doctor with the highest debt who is available and has not yet reached their target receives the week.
+- Heavy penalty (−10⁸) for consecutive weeks.
+- Bonus for doctors with few available days in total (protects scarce availability).
+- Once a doctor is assigned a week, their accumulator is reset to the next expected interval.
 
-#### <a name="distribution-mode-en"></a>Distribution mode
+**Phase 2 — Residual rebalancing**
+After week assignment, remaining open slots are filled via greedy rebalancing:
+- Swap candidates are calculated: for each over-scheduled doctor, dates are found on which an under-scheduled doctor is available.
+- Maximum 500 iterations; stops once the distribution is balanced.
 
-When starting auto-schedule, choose a distribution mode:
+#### Distribution & statistics
+- **Overview:** table with total, weekdays, weekends, holidays, positive/negative preference days and maximum consecutive weeks per doctor.
+- **Problems panel:** automatically detects:
+  - Too many or too few shifts (threshold: ±1.5 relative to average).
+  - Consecutive weeks.
+  - Open dates (everyone negative).
+  - **Availability warning:** if a doctor has fewer than 60% of the target number of available days, an explicit warning appears before scheduling begins.
+- **Auto-fix:** one click automatically resolves all swappable problems.
 
-| Mode | Behaviour |
-|------|-----------|
-| **⚖ Equity — per week** *(default)* | Same person keeps the full week where possible (+40 per day already in that week). Fair distribution per day type, no consecutive weeks (−100 penalty), preferences (+5/−10), rank affinity (+50). |
-| **🎲 Random — spread** | Individual days assigned at random across the period, not bundled per week. Still fair (equity scoring) and preferences still respected. Staff with limited availability (few positive / many negative days) get priority for those days. |
+#### Preferences
+- Per doctor per day: positive ✓ / negative ✕ / no preference.
+- Click cycles through statuses.
+- Set an entire month to negative or clear it in one click.
+- Preference days are displayed in green/red on the calendar.
 
-#### <a name="problem-detection-en"></a>Problem detection & fix suggestions
+#### Periods
+- Define multiple duty periods (name, colour, date range).
+- Per period: set the number of slots on weekdays, weekends and holidays separately.
+- Optional: restrict which doctors may participate in a period.
 
-The problems panel (calendar and overview) automatically analyses:
+#### Holidays
+- Belgian public holidays automatically calculated per year (Easter, Pentecost, etc.).
+- Add custom holidays.
+- Holidays are marked red on the calendar.
 
-- **Equity deviations** (≥ 1.5 from average) — stating whether someone has too many or too few shifts, with a concrete proposal: *"Move a shift from Dr. Peters to Dr. Martens (e.g. 15 Jul, +2 other options)"*. Locked dates are excluded from suggestions.
-- **Consecutive weeks** — anyone scheduled for more than one consecutive week, with advice on which shift to move
-- **Open slots** — dates within a period not yet fully filled, listing the specific dates
+#### Locks
+- Lock date ranges with an optional label.
+- Locked days can no longer be edited but remain visible.
 
-#### Month defaults for preferences
+#### Carry-over
+- Carry forward counts from a previous planning period for correct equitable distribution.
 
-Each month in the preferences screen has three small buttons above the mini-calendar grid:
+#### User management
+- Multiple users with their own login.
+- Two roles: **admin** (full access) and **doctor** (own calendar and preferences only).
+- Activate/deactivate users without deleting them.
 
-- **✓ all** — sets the entire month to positive. If already fully positive, the button clears it instead.
-- **✕ all** — same logic for negative.
-- **🗑** — clears all preferences for that month (only shown when something is already set).
+#### Settings & role naming
+- Customise the role name: singular, plural, icon and planning title (e.g. "intern / interns / 🎓 / Internship planning").
+- Seven quick presets: doctor, nurse (gender-neutral, replaces the previous separate male/female presets), employee, intern, volunteer, technician, guard.
+- **Language switcher:** choose the language for role presets: 🇳🇱 Nederlands · 🇬🇧 English · 🇫🇷 Français · 🇩🇪 Deutsch · 🇨🇳 中文 · 🇯🇵 日本語. Presets translate automatically.
 
-Individual days can still be toggled afterwards by clicking them (none → positive → negative → none).
-
----
-
-### 🚀 Quick Start
-
-1. Download `index.html`
-2. Open the file in a browser (Chrome, Firefox, Edge, Safari)
-3. Log in with username `admin` and password `admin123`
-4. Add staff via **Users** → **+ Add User**
-5. Optionally create an on-call period via **On-call Periods**
-6. Click **⚡ Auto-schedule** and choose a distribution mode
-
-> **No server required.** The file runs entirely locally. All data is stored in the browser's `localStorage`.
-
----
-
-### 💾 Data & Privacy
-
-- All data stays **locally on your device** in browser `localStorage` under key `medwatch_v2`
-- No external servers, no tracking, no cookies
-- Export: `localStorage.getItem('medwatch_v2')` in the browser console
-- Import: `localStorage.setItem('medwatch_v2', '...')` and reload the page
-- Clear: click **Reset** on the calendar or clear browser storage for this page
-
-### ⚠️ Limitations
-
-| Limitation | Notes |
-|------------|-------|
-| Shared use | `localStorage` is per browser/device — no real-time sync between users |
-| Offline only | No internet needed after first load, but data is not cloud-synced |
-| Browser storage | Typically 5–10 MB limit; sufficient for years of scheduling |
-
-For multi-device shared use: manually export/import the JSON data via the browser console.
+#### Export
+- **PDF:** monthly or period overview with calendar and distribution table.
+- **iCal (.ics):** export the schedule per doctor as a calendar file.
+- **Email (mailto):** send a shift overview to a doctor.
+- **JSON backup:** full export of all data; import on another device.
 
 ---
 
-## 🛠️ Technical Background / Technische Achtergrond
+### Changelog
 
-### Architecture
-
-MedWatch is intentionally a **zero-dependency, zero-build, single-file application**. This design choice prioritises:
-
-- **Portability** — the file can be emailed, put on a USB stick, or hosted on any static file server
-- **Longevity** — no `npm install`, no build pipeline, no dependency rot
-- **Simplicity** — non-technical users can open it directly without any setup
-
-```
-index.html
-├── <style>          CSS custom properties, dark theme, layout, component styles
-├── <script CDN>     React 18, ReactDOM, Babel Standalone (from cdnjs)
-└── <script babel>   Complete application: components, state, scheduling algorithm
-```
-
-### Technologies Used / Gebruikte technologieën
-
-| Technology | Version | Role |
-|------------|---------|------|
-| **React** | 18.2 | UI component framework, hooks-based state management (`useState`, `useMemo`) |
-| **ReactDOM** | 18.2 | DOM rendering |
-| **Babel Standalone** | 7.23 | In-browser JSX transpilation — no build step required |
-| **CSS Custom Properties** | — | Dark theme variables, consistent component styling |
-| **localStorage API** | — | Client-side persistent data storage |
-| **Browser Print API** | — | PDF generation via `window.print()` |
-| **Google Fonts** | — | DM Serif Display + DM Sans typography |
-
-> All CDN resources load from `cdnjs.cloudflare.com` and `fonts.googleapis.com`. For a fully offline setup, download these assets locally and update the relevant `<script src>` and `<link href>` tags.
-
-### State Management
-
-The application uses React's `useState` + `useMemo` hooks exclusively — no external state library. All state serialises to a single JSON object in `localStorage` under the key `medwatch_v2`:
-
-```json
-{
-  "users": [{ "id": 1, "name": "Admin", "role": "admin" }, { "id": 2, "name": "Dr. Janssen", "role": "doctor" }],
-  "schedule": { "2025-07-01": [2, 3], "2025-07-02": [4] },
-  "preferences": { "2025-07-05": { "2": "positive", "3": "negative" } },
-  "periods": [{ "id": 1, "name": "Zomervakantie", "start": "2025-07-14", "end": "2025-07-20", "slots": 2 }],
-  "adminEdits": { "2025-07-10": true },
-  "lockedRanges": [{ "id": 1, "start": "2025-07-01", "end": "2025-07-31", "label": "Juli definitief" }],
-  "customHolidays": { "2025-07-11": "Vlaamse feestdag" },
-  "carryOver": { "2": { "total": 12, "weekday": 8, "weekend": 3, "holiday": 1 } },
-  "roleLabel": { "singular": "arts", "plural": "artsen", "icon": "👨‍⚕️", "planningTitle": "Wachtplanning" }
-}
-```
-
-> Users with `"role": "admin"` are stored but never appear in `schedule` assignments, statistics, or equity calculations.
-
-### Scheduling Algorithm
-
-The auto-scheduler supports two modes:
-
-#### Equity mode — greedy weighted assignment
-
-1. Iterates over each date in the requested range (locked dates skipped)
-2. Determines required slots from the active period definition
-3. For each slot, scores every eligible (non-admin, not yet assigned today) staff member:
-
-| Score component | Value | Description |
-|-----------------|-------|-------------|
-| Day-type count | −1 / −2 / −3 | Weekday / weekend / holiday shifts already assigned (incl. carry-over) |
-| Consecutive week penalty | −100 | Prevents back-to-back scheduled weeks |
-| Positive preference | +5 | Staff member marked this date as preferred |
-| Negative preference | −10 | Staff member marked this date as undesirable |
-| Rank affinity bonus | +50 | Person already held this rank slot earlier in the same ISO week |
-| Tie-break noise | ±0.2 | Small random value to break exact ties |
-
-4. Assigns the highest-scoring candidate; updates running counts for subsequent dates
-
-#### Random mode — uniform random selection
-
-Each slot is filled by selecting uniformly at random from eligible staff. No scoring, no equity tracking, no preference checking.
-
-**Complexity (both modes):** O(d × s × n) — days × slots × staff count. Sub-millisecond for a full year.
-
-### Problem Detection Engine
-
-`detectProblems()` runs reactively via `useMemo` on every schedule change. For equity deviations it finds a concrete swap candidate by:
-
-1. Identifying the over- or under-scheduled staff member
-2. Scanning all dates where the over-scheduled person is assigned but the target is not
-3. Filtering out locked dates
-4. Returning the earliest viable swap date and total count of alternatives
-
-### ISO Week & Consecutive Detection
-
-Rank consistency and consecutive-week detection use ISO 8601 week numbering (`YYYY-Www`). Year-boundary edge cases (week 52/53 → week 1) are handled explicitly.
-
-### PDF Export
-
-PDF generation uses the **browser's native print dialog** (`window.print()`). A self-contained HTML document is opened in a new window with print-optimised CSS — white backgrounds, `page-break-inside: avoid`, no sidebar. No external PDF library required.
+| Version | Changes |
+|---------|---------|
+| v1 | Initial release: calendar, drag-and-drop, preferences, PDF |
+| v2 | User management, multiple roles, login |
+| v3 | Duty periods, holidays, locks, carry-over, auto-scheduling (equity algorithm), problems panel, auto-fix |
+| v6 | Phase 0 singleton fix, availability warning, language switcher for role presets, nurse preset gender-neutral, filename `medwatch.html` |
 
 ---
 
-## 📁 Repository Structure
+### Technical notes
 
-```
-medwatch/
-├── index.html               # Complete application (single file)
-├── README.md                # This file (NL + EN + technical docs)
-├── CHANGELOG.md             # Version history
-├── CONTRIBUTING.md          # Contribution guidelines (NL + EN)
-├── SECURITY.md              # Security policy (NL + EN)
-├── LICENSE                  # MIT License
-├── screenshots/
-│   ├── screenshot-calendar.svg
-│   ├── screenshot-overview.svg
-│   ├── screenshot-settings.svg
-│   └── screenshot-login.svg
-└── .github/
-    ├── workflows/
-    │   └── deploy.yml       # GitHub Pages auto-deploy on push to main
-    └── ISSUE_TEMPLATE/
-        ├── bug_report.md
-        └── feature_request.md
-```
-
----
-
-## 🔧 Self-Hosting / Zelf hosten
-
-### GitHub Pages (aanbevolen / recommended)
-
-1. Fork this repository
-2. Go to **Settings → Pages**
-3. Set source: **Deploy from branch** → `main` → `/ (root)`
-4. Your app will be live at `https://yourusername.github.io/medwatch/`
-
-The included `deploy.yml` workflow redeploys automatically on every push to `main`.
-
-### Any static host
-
-Upload `index.html` (and optionally `screenshots/`) to any static file host — Netlify, Vercel, Cloudflare Pages, your own server. No build step needed.
-
-### Fully offline
-
-```bash
-# Download once
-curl -O https://raw.githubusercontent.com/yourusername/medwatch/main/index.html
-
-# Open directly
-open index.html        # macOS
-start index.html       # Windows
-xdg-open index.html    # Linux
-```
-
----
-
-## 🤝 Contributing / Bijdragen
-
-Contributions welcome! / Bijdragen zijn welkom!
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/my-feature`
-3. Commit: `git commit -m 'Add: description'`
-4. Push: `git push origin feature/my-feature`
-5. Open a Pull Request
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for style guidelines.
-
-**Ideas / Ideeën:**
-- [ ] Import/export JSON backup via UI
-- [ ] Multi-language UI (i18n)
-- [ ] Email notifications (via `mailto:` links)
-- [ ] iCal (`.ics`) export
-- [ ] Dark/light mode toggle
-- [ ] Mobile-optimised layout
-- [ ] Optional shared backend for multi-device sync
-
----
-
-## 📄 License
-
-MIT License — see [LICENSE](LICENSE) for details.  
-Free to use, modify and distribute for any purpose, including commercial use.
-
----
-
-<div align="center">
-Built with ❤️ as a single HTML file · Geen server nodig · No server required
-</div>
+- **No installation:** the file uses React 18, ReactDOM and Babel Standalone loaded from cdnjs.cloudflare.com. For fully offline use, download those three scripts and reference them locally.
+- **Storage:** all data is stored in `localStorage` under the key `medwatch_store`. Clearing browser data = data loss. Use the JSON backup regularly.
+- **Security:** passwords are stored as a simple hash. Sufficient for internal use on a trusted network; not suitable for public-facing deployments.
+- **Browser compatibility:** tested in Chrome 120+, Firefox 121+, Edge 120+, Safari 17+. Internet Explorer is not supported.
